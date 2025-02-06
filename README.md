@@ -8,16 +8,19 @@ Terraform does not have a deterministic method to identify the different between
 
 ### Goals
 
+Pantalon intends to:
+
 - Create a machine readable output of the Terraform configurations (root modules) within a repository.
 - Allow selection of configurations based on labels (filtering).
 - Allow specification of metadata needed to executing the Terraform configuration such as Service Accounts.
+- Allow filtering by files changed in the git commit (such as a push to `main` or introduced by a pull request).
 
 ### Anti-Goals
 
 Pantalon does not intend to:
 
-- Manage the execution of Terraform. Either directory or as orchestrator.
-- Interact with the Terraform state or external systems/backends.
+- Manage the execution of Terraform. Either directly or as an orchestrator.
+- Interact with the Terraform state or external systems and backends.
 
 ## Usage
 
@@ -66,6 +69,9 @@ pantalon list . --output-format=json
 
 - [ ] Support listing dependencies of a root module within the pantalon file.
 - [ ] Allow filtering by label selectors.
+- [ ] Allow filtering by path glob.
+- [ ] Filter by the union of git files changed and directories detected
 - [ ] Support other configuration use cases other than Terraform.
+- [ ] Create a Docker release.
 - [ ] Create a GitHub action.
 - [ ] Allow the supply of arbitrary metadata.
