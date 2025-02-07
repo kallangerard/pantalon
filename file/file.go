@@ -1,6 +1,7 @@
 package file
 
 import (
+	"errors"
 	"log"
 	"os"
 	"path/filepath"
@@ -22,8 +23,11 @@ func FindPantalonFiles(root string) ([]string, error) {
 
 		_, err = os.Stat(pantalonPath)
 		if err != nil {
-			// Skip this directory if it doesn't contain a pantalon.yaml file
-			return nil
+			if errors.Is(err, os.ErrNotExist) {
+				// Skip this directory if it doesn't contain a pantalon.yaml file
+				return nil
+			}
+			return err
 		}
 
 		result = append(result, pantalonPath)
