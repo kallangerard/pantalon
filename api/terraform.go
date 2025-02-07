@@ -15,9 +15,10 @@ type config struct {
 }
 
 type TerraformConfiguration struct {
-	ApiVersion string   `yaml:"apiVersion"`
-	Kind       string   `yaml:"kind"`
-	Metadata   Metadata `yaml:"metadata"`
+	ApiVersion string            `yaml:"apiVersion"`
+	Kind       string            `yaml:"kind"`
+	Metadata   Metadata          `yaml:"metadata"`
+	Context    map[string]string `yaml:"context,omitempty"`
 }
 
 type Metadata struct {
