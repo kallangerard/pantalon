@@ -1,0 +1,5 @@
+---
+apiVersion: pantalon.kallan.dev/v1alpha1
+kind: TerraformConfiguration
+metadata:
+  name: sibling-dir-c
