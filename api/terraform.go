@@ -1,6 +1,11 @@
 package api
 
-import "github.com/goccy/go-yaml"
+import (
+	"errors"
+	"regexp"
+
+	"github.com/goccy/go-yaml"
+)
 
 const (
 	PantalonVersion = "pantalon.kallan.dev/v1alpha1"
@@ -33,5 +38,42 @@ func (c config) Unmarshal(yamlDoc []byte) (TerraformConfiguration, error) {
 		return cfg, err
 	}
 
+	err = c.ValidateTerraform(cfg)
+	if err != nil {
+		return cfg, err
+	}
+
 	return cfg, nil
+}
+
+func (c config) ValidateTerraform(cfg TerraformConfiguration) error {
+	if cfg.ApiVersion != PantalonVersion {
+		return errors.New("invalid version")
+	}
+
+	if cfg.Kind != TerraformKind {
+		return errors.New("invalid kind")
+	}
+
+	if !isValidSubdomainLabel(cfg.Metadata.Name) {
+		return errors.New("invalid metadata.name")
+	}
+	return nil
+}
+
+// Must comply with RFC 1123 subdomain labels
+//
+// As described in https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-subdomain-names
+func isValidSubdomainLabel(s string) bool {
+	reg := regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`)
+
+	if !reg.MatchString(s) {
+		return false
+	}
+
+	if len(s) > 253 {
+		return false
+	}
+
+	return true
 }

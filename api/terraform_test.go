@@ -59,3 +59,41 @@ context:
 	assert.Equal(t, "b", tfCfg.Context["bar"])
 	assert.Equal(t, "true", tfCfg.Context["baz"])
 }
+
+func TestUnmarshalTerraformConfiguration_ApiVersionMissing(t *testing.T) {
+	yamlDoc := `
+---
+kind: TerraformConfiguration
+metadata:
+  name: hello-world
+`
+	cfg := config{}
+	_, err := cfg.Unmarshal([]byte(yamlDoc))
+	assert.EqualError(t, err, "invalid version")
+}
+
+func TestUnmarshalTerraformConfiguration_InvalidMetadataNameSnakeCase(t *testing.T) {
+	yamlDoc := `
+---
+kind: TerraformConfiguration
+apiVersion: pantalon.kallan.dev/v1alpha1
+metadata:
+  name: hello_world
+`
+	cfg := config{}
+	_, err := cfg.Unmarshal([]byte(yamlDoc))
+	assert.EqualError(t, err, "invalid metadata.name")
+}
+
+func TestUnmarshalTerraformConfiguration_InvalidMetadataNameDots(t *testing.T) {
+	yamlDoc := `
+---
+kind: TerraformConfiguration
+apiVersion: pantalon.kallan.dev/v1alpha1
+metadata:
+  name: hello.world
+`
+	cfg := config{}
+	_, err := cfg.Unmarshal([]byte(yamlDoc))
+	assert.EqualError(t, err, "invalid metadata.name")
+}
