@@ -1,0 +1,9 @@
+---
+apiVersion: pantalon.kallan.dev/v1alpha1
+kind: TerraformConfiguration
+
+metadata:
+  name: pantalon-example-data-dev
+
+context:
+  gcp-service-account: infrastructure@pantalon-dev.iam.gserviceaccount.com
