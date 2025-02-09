@@ -3,7 +3,7 @@ module github.com/kallangerard/pantalon
 go 1.23.4
 
 require (
-	github.com/goccy/go-yaml v1.15.17
+	github.com/goccy/go-yaml v1.15.19
 	github.com/stretchr/testify v1.10.0
 )
 
