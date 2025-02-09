@@ -1,0 +1,1 @@
+Dummy file to ensure nested directories with no Pantalon files are handled gracefully.
