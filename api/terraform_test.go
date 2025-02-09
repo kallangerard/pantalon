@@ -110,14 +110,15 @@ func TestMarshalItems(t *testing.T) {
 				{
 					Metadata: Metadata{Name: "item1"},
 					Context:  map[string]string{"key1": "value1"},
-					Path:     "/path/to/item1",
+					Path:     "/path/to/item1/pantalon.yaml",
 				},
 			},
 			expected: []ConfigurationItem{
 				{
 					Name:    "item1",
 					Context: map[string]string{"key1": "value1"},
-					Path:    "/path/to/item1",
+					Path:    "/path/to/item1/pantalon.yaml",
+					Dir:     "/path/to/item1",
 				},
 			},
 		},
@@ -127,24 +128,26 @@ func TestMarshalItems(t *testing.T) {
 				{
 					Metadata: Metadata{Name: "item1"},
 					Context:  map[string]string{"key1": "value1"},
-					Path:     "/path/to/item1",
+					Path:     "/path/to/item1/pantalon.yaml",
 				},
 				{
 					Metadata: Metadata{Name: "item2"},
 					Context:  map[string]string{"key2": "value2"},
-					Path:     "/path/to/item2",
+					Path:     "/path/to/item2/pantalon.yaml",
 				},
 			},
 			expected: []ConfigurationItem{
 				{
 					Name:    "item1",
 					Context: map[string]string{"key1": "value1"},
-					Path:    "/path/to/item1",
+					Path:    "/path/to/item1/pantalon.yaml",
+					Dir:     "/path/to/item1",
 				},
 				{
 					Name:    "item2",
 					Context: map[string]string{"key2": "value2"},
-					Path:    "/path/to/item2",
+					Path:    "/path/to/item2/pantalon.yaml",
+					Dir:     "/path/to/item2",
 				},
 			},
 		},
@@ -154,14 +157,15 @@ func TestMarshalItems(t *testing.T) {
 				{
 					Metadata: Metadata{Name: "item1"},
 					Context:  map[string]string{},
-					Path:     "/path/to/item1",
+					Path:     "/path/to/item1/pantalon.yaml",
 				},
 			},
 			expected: []ConfigurationItem{
 				{
 					Name:    "item1",
 					Context: map[string]string{},
-					Path:    "/path/to/item1",
+					Path:    "/path/to/item1/pantalon.yaml",
+					Dir:     "/path/to/item1",
 				},
 			},
 		},

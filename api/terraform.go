@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"path"
 	"regexp"
 
 	"github.com/goccy/go-yaml"
@@ -31,6 +32,7 @@ type TerraformConfiguration struct {
 type ConfigurationItem struct {
 	Name    string            `yaml:"name"`
 	Path    string            `yaml:"path"`
+	Dir     string            `yaml:"dir"`
 	Context map[string]string `yaml:"context"`
 }
 
@@ -82,6 +84,7 @@ func MarshalItems(cfgs []TerraformConfiguration) ([]ConfigurationItem, error) {
 			Name:    cfg.Metadata.Name,
 			Context: cfg.Context,
 			Path:    cfg.Path,
+			Dir:     path.Dir(cfg.Path),
 		}
 		items = append(items, item)
 	}
