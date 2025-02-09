@@ -58,7 +58,7 @@ The following command will list all configurations within the current directory:
 ```
 
 ```shell
-pantalon list . --output-format=json
+pantalon --output-format=json-compact .
 ```
 
 ```json

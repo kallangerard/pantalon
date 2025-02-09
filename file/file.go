@@ -10,20 +10,20 @@ import (
 )
 
 func Search(root string) ([]api.TerraformConfiguration, error) {
-  paths, err := findFiles(root)
-  if err != nil {
-    return nil, err
-  }
+	paths, err := findFiles(root)
+	if err != nil {
+		return nil, err
+	}
 
-  var result []api.TerraformConfiguration
-  for _, path := range paths {
-    tfCfg, err := readFile(path)
-    if err != nil {
-      return nil, err
-    }
-    result = append(result, tfCfg)
-  }
-  return result, nil
+	var result []api.TerraformConfiguration
+	for _, path := range paths {
+		tfCfg, err := readFile(path)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, tfCfg)
+	}
+	return result, nil
 }
 
 func findFiles(root string) ([]string, error) {
