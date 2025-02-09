@@ -48,21 +48,106 @@ The following command will list all configurations within the current directory:
 ```shell
 .
 └── terraform
-    ├── environments
-        ├── dev
-        │   ├── main.tf
-        │   └── pantalon.yaml
-        └── prod
-            ├── main.tf
-            └── pantalon.yaml
+    ├── compute
+    │   ├── environments
+    │   │   ├── dev
+    │   │   │   ├── main.tf
+    │   │   │   └── pantalon.yaml
+    │   │   ├── prod
+    │   │   │   ├── main.tf
+    │   │   │   └── pantalon.yaml
+    │   │   └── qa
+    │   │       ├── main.tf
+    │   │       └── pantalon.yaml
+    │   └── modules
+    │       ├── instance-group
+    │       │   ├── v1
+    │       │   │   └── main.tf
+    │       │   └── v2
+    │       │       └── main.tf
+    │       └── template
+    │           ├── v1
+    │           │   └── main.tf
+    │           └── v2
+    │               └── main.tf
+    ├── data
+    │   ├── environments
+    │   │   ├── dev
+    │   │   │   ├── main.tf
+    │   │   │   └── pantalon.yaml
+    │   │   ├── prod
+    │   │   │   ├── main.tf
+    │   │   │   └── pantalon.yaml
+    │   │   └── qa
+    │   │       ├── main.tf
+    │   │       └── pantalon.yaml
+    │   └── modules
+    │       ├── db-instance
+    │       │   ├── v1
+    │       │   │   └── main.tf
+    │       │   └── v2
+    │       │       └── main.tf
+    │       └── iam
+    │           ├── v1
+    │           │   └── main.tf
+    │           └── v2
+    │               └── main.tf
+    └── load-balancer
+        ├── environments
+        │   ├── dev
+        │   │   ├── main.tf
+        │   │   └── pantalon.yaml
+        │   ├── prod
+        │   │   ├── main.tf
+        │   │   └── pantalon.yaml
+        │   └── qa
+        │       ├── main.tf
+        │       └── pantalon.yaml
+        └── modules
+            ├── certificates
+            │   ├── v1
+            │   │   └── main.tf
+            │   └── v2
+            │       └── main.tf
+            └── proxy
+                ├── v1
+                │   └── main.tf
+                └── v2
+                    └── main.tf
 ```
 
 ```shell
-pantalon --output-format=json-compact .
+pantalon --output-format=yaml .
 ```
 
-```json
-[{ "name": "dev", "path": "terraform/environments/dev" }, { "name": "prod", "path": "terraform/environments/prod" }]
+```yaml
+- name: pantalon-example-compute-dev
+  context:
+    gcp-service-account: infrastructure@pantalon-dev.iam.gserviceaccount.com
+- name: pantalon-example-compute-prod
+  context:
+    gcp-service-account: infrastructure@pantalon-prod.iam.gserviceaccount.com
+- name: pantalon-example-compute-qa
+  context:
+    gcp-service-account: infrastructure@pantalon-qa.iam.gserviceaccount.com
+- name: pantalon-example-data-dev
+  context:
+    gcp-service-account: infrastructure@pantalon-dev.iam.gserviceaccount.com
+- name: pantalon-example-data-prod
+  context:
+    gcp-service-account: infrastructure@pantalon-prod.iam.gserviceaccount.com
+- name: pantalon-example-data-qa
+  context:
+    gcp-service-account: infrastructure@pantalon-qa.iam.gserviceaccount.com
+- name: pantalon-example-lbl-dev
+  context:
+    gcp-service-account: infrastructure@pantalon-dev.iam.gserviceaccount.com
+- name: pantalon-example-lbl-prod
+  context:
+    gcp-service-account: infrastructure@pantalon-prod.iam.gserviceaccount.com
+- name: pantalon-example-lbl-qa
+  context:
+    gcp-service-account: infrastructure@pantalon-qa.iam.gserviceaccount.com
 ```
 
 ## Roadmap
