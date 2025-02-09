@@ -97,3 +97,88 @@ metadata:
 	_, err := cfg.Unmarshal([]byte(yamlDoc))
 	assert.EqualError(t, err, "invalid metadata.name")
 }
+
+func TestMarshalItems(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []TerraformConfiguration
+		expected []ConfigurationItem
+	}{
+		{
+			name: "Single item",
+			input: []TerraformConfiguration{
+				{
+					Metadata: Metadata{Name: "item1"},
+					Context:  map[string]string{"key1": "value1"},
+					Path:     "/path/to/item1",
+				},
+			},
+			expected: []ConfigurationItem{
+				{
+					Name:    "item1",
+					Context: map[string]string{"key1": "value1"},
+					Path:    "/path/to/item1",
+				},
+			},
+		},
+		{
+			name: "Multiple items",
+			input: []TerraformConfiguration{
+				{
+					Metadata: Metadata{Name: "item1"},
+					Context:  map[string]string{"key1": "value1"},
+					Path:     "/path/to/item1",
+				},
+				{
+					Metadata: Metadata{Name: "item2"},
+					Context:  map[string]string{"key2": "value2"},
+					Path:     "/path/to/item2",
+				},
+			},
+			expected: []ConfigurationItem{
+				{
+					Name:    "item1",
+					Context: map[string]string{"key1": "value1"},
+					Path:    "/path/to/item1",
+				},
+				{
+					Name:    "item2",
+					Context: map[string]string{"key2": "value2"},
+					Path:    "/path/to/item2",
+				},
+			},
+		},
+		{
+			name: "Empty context",
+			input: []TerraformConfiguration{
+				{
+					Metadata: Metadata{Name: "item1"},
+					Context:  map[string]string{},
+					Path:     "/path/to/item1",
+				},
+			},
+			expected: []ConfigurationItem{
+				{
+					Name:    "item1",
+					Context: map[string]string{},
+					Path:    "/path/to/item1",
+				},
+			},
+		},
+		{
+			name:     "No items",
+			input:    []TerraformConfiguration{},
+			expected: []ConfigurationItem{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := MarshalItems(tt.input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}

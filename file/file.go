@@ -18,6 +18,7 @@ func Search(root string) ([]api.TerraformConfiguration, error) {
 	var result []api.TerraformConfiguration
 	for _, path := range paths {
 		tfCfg, err := readFile(path)
+		tfCfg.Path = path
 		if err != nil {
 			return nil, err
 		}

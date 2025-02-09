@@ -25,6 +25,13 @@ type TerraformConfiguration struct {
 	Kind       string            `yaml:"kind"`
 	Metadata   Metadata          `yaml:"metadata"`
 	Context    map[string]string `yaml:"context,omitempty"`
+	Path       string
+}
+
+type ConfigurationItem struct {
+	Name    string            `yaml:"name"`
+	Path    string            `yaml:"path"`
+	Context map[string]string `yaml:"context"`
 }
 
 type Metadata struct {
@@ -43,7 +50,7 @@ func (c config) Unmarshal(yamlDoc []byte) (TerraformConfiguration, error) {
 		return cfg, err
 	}
 
-	err = c.ValidateTerraform(cfg)
+	err = c.validateTerraform(cfg)
 	if err != nil {
 		return cfg, err
 	}
@@ -51,7 +58,7 @@ func (c config) Unmarshal(yamlDoc []byte) (TerraformConfiguration, error) {
 	return cfg, nil
 }
 
-func (c config) ValidateTerraform(cfg TerraformConfiguration) error {
+func (c config) validateTerraform(cfg TerraformConfiguration) error {
 	if cfg.ApiVersion != PantalonVersion {
 		return errors.New("invalid version")
 	}
@@ -64,6 +71,22 @@ func (c config) ValidateTerraform(cfg TerraformConfiguration) error {
 		return errors.New("invalid metadata.name")
 	}
 	return nil
+}
+
+func MarshalItems(cfgs []TerraformConfiguration) ([]ConfigurationItem, error) {
+
+	items := make([]ConfigurationItem, 0)
+
+	for _, cfg := range cfgs {
+		item := ConfigurationItem{
+			Name:    cfg.Metadata.Name,
+			Context: cfg.Context,
+			Path:    cfg.Path,
+		}
+		items = append(items, item)
+	}
+
+	return items, nil
 }
 
 // Must comply with RFC 1123 subdomain labels
