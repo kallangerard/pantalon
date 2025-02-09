@@ -83,6 +83,7 @@ func TestSearch_Success(t *testing.T) {
 			Metadata: api.Metadata{
 				Name: "single-dir",
 			},
+			Path: path.Join(root, "pantalon.yaml"),
 		},
 	}
 
@@ -104,6 +105,7 @@ func TestSearch_MultipleFiles(t *testing.T) {
 			Metadata: api.Metadata{
 				Name: "sibling-dir-a",
 			},
+			Path: path.Join(root, "a", "pantalon.yaml"),
 		},
 		{
 			ApiVersion: "pantalon.kallan.dev/v1alpha1",
@@ -111,6 +113,7 @@ func TestSearch_MultipleFiles(t *testing.T) {
 			Metadata: api.Metadata{
 				Name: "sibling-dir-b",
 			},
+			Path: path.Join(root, "b", "pantalon.yaml"),
 		},
 		{
 			ApiVersion: "pantalon.kallan.dev/v1alpha1",
@@ -118,6 +121,7 @@ func TestSearch_MultipleFiles(t *testing.T) {
 			Metadata: api.Metadata{
 				Name: "sibling-dir-c",
 			},
+			Path: path.Join(root, "c", "pantalon.yaml"),
 		},
 	}
 
