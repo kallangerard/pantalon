@@ -58,3 +58,15 @@ func TestWalkDir_SiblingDirectories(t *testing.T) {
 
 	assert.Equal(t, expectedPaths, paths)
 }
+func TestReadFile_Success(t *testing.T) {
+	path := path.Join("..", "testdata", "terraform", "single-dir", "pantalon.yaml")
+
+	cfg, err := readFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, "pantalon.kallan.dev/v1alpha1", cfg.ApiVersion)
+	assert.Equal(t, "TerraformConfiguration", cfg.Kind)
+	assert.Equal(t, "single-dir", cfg.Metadata.Name)
+}

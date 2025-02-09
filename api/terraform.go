@@ -13,6 +13,7 @@ const (
 )
 
 type PantalonConfig interface {
+	New() config
 	Unmarshal([]byte) (TerraformConfiguration, error)
 }
 
@@ -28,6 +29,10 @@ type TerraformConfiguration struct {
 
 type Metadata struct {
 	Name string `yaml:"name"`
+}
+
+func New() config {
+	return config{}
 }
 
 func (c config) Unmarshal(yamlDoc []byte) (TerraformConfiguration, error) {

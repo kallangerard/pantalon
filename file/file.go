@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/kallangerard/pantalon/api"
 )
 
 func FindPantalonFiles(root string) ([]string, error) {
@@ -38,4 +40,20 @@ func FindPantalonFiles(root string) ([]string, error) {
 		return nil, err
 	}
 	return result, nil
+}
+
+func readFile(path string) (api.TerraformConfiguration, error) {
+
+	file, err := os.ReadFile(path)
+
+	if err != nil {
+		return api.TerraformConfiguration{}, err
+	}
+
+	cfg := api.New()
+	tfCfg, err := cfg.Unmarshal(file)
+	if err != nil {
+		return api.TerraformConfiguration{}, err
+	}
+	return tfCfg, nil
 }
