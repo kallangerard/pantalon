@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/goccy/go-yaml"
 
@@ -17,12 +16,7 @@ func main() {
 	outputFormat := flag.String("output-format", "json", "Output format (json)")
 	flag.Parse()
 
-	if flag.NArg() != 1 {
-		log.Fatalf("Usage: %s <directory>", os.Args[0])
-	}
-
-	root := flag.Arg(0)
-	configurations, err := file.Search(root)
+	configurations, err := file.Search()
 	if err != nil {
 		log.Fatalf("Error listing configurations: %v", err)
 	}

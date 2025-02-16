@@ -9,8 +9,8 @@ import (
 	"github.com/kallangerard/pantalon/api"
 )
 
-func Search(root string) ([]api.TerraformConfiguration, error) {
-	paths, err := findFiles(root)
+func Search() ([]api.TerraformConfiguration, error) {
+	paths, err := findFiles()
 	if err != nil {
 		return nil, err
 	}
@@ -27,9 +27,9 @@ func Search(root string) ([]api.TerraformConfiguration, error) {
 	return result, nil
 }
 
-func findFiles(root string) ([]string, error) {
+func findFiles() ([]string, error) {
 	var result []string
-	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
+	err := filepath.WalkDir(".", func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			log.Println(err)
 			return err

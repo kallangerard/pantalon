@@ -116,8 +116,10 @@ The following command will list all configurations within the current directory:
                     └── main.tf
 ```
 
+Pantalon is always ran from the current working directory, and should always be ran from the root of the git repository. This is important to ensure simple integration with tools like changed-files as well as passing correct paths to GitHub Workflow job matrixes.
+
 ```shell
-pantalon --output-format=yaml .
+pantalon --output-format=yaml
 ```
 
 ```yaml
