@@ -188,8 +188,6 @@ The changed-dirs argument has been designed to be supplied by [tj-actions/change
         dir_names: "true"
 ```
 
-```yaml
-
 ## Roadmap
 
 - [ ] Support listing dependencies of a root module within the pantalon file.
