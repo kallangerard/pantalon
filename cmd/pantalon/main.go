@@ -14,6 +14,7 @@ import (
 
 func main() {
 	outputFormat := flag.String("output-format", "json", "Output format (json)")
+	changedDirsJson := flag.String("changed-dirs", "", `[".", "foo", "foo/bar"]`)
 	flag.Parse()
 
 	configurations, err := file.Search()
@@ -21,9 +22,24 @@ func main() {
 		log.Fatalf("Error listing configurations: %v", err)
 	}
 
-	items, err := api.MarshalItems(configurations)
+	unfilteredItems, err := api.MarshalItems(configurations)
 	if err != nil {
 		log.Fatalf("Error marshaling items: %v", err)
+	}
+
+	var items = []api.ConfigurationItem{}
+
+	if changedDirsJson != nil {
+		changedDirs, err := api.UnmarshalChangedFileJson([]byte(*changedDirsJson))
+		if err != nil {
+			log.Fatalf("Error unmarshaling changed dirs: %v", err)
+		}
+		items, err = file.ChangedFiles(unfilteredItems, changedDirs)
+		if err != nil {
+			log.Fatalf("Error filtering changed files: %v", err)
+		}
+	} else {
+		items = unfilteredItems
 	}
 
 	switch *outputFormat {

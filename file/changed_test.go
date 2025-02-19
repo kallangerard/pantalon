@@ -8,13 +8,21 @@ import (
 )
 
 func TestChangedDirs_SimpleDir(t *testing.T) {
-
 	cfgs := []api.TerraformConfiguration{
 		{
 			Metadata: api.Metadata{Name: "item1"},
 			Path:     "a/pantalon.yaml",
 		},
 	}
+
+	expectedFilteredCfgs := []api.ConfigurationItem{
+		{
+			Name: "item1",
+			Path: "a/pantalon.yaml",
+			Dir:  "a",
+		},
+	}
+
 	changedFilesJson := []byte(`["a"]`)
 
 	items, err := api.MarshalItems(cfgs)
@@ -27,9 +35,7 @@ func TestChangedDirs_SimpleDir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expectedFilteredCfgs := []string{"a"}
-
-	filteredCfgs, err := changedFiles(items, changedDirs)
+	filteredCfgs, err := ChangedFiles(items, changedDirs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,6 +51,9 @@ func TestChangedDirs_NoChanges(t *testing.T) {
 			Path:     "a/pantalon.yaml",
 		},
 	}
+
+	expectedFilteredCfgs := []api.ConfigurationItem{}
+
 	changedFilesJson := []byte(`[]`)
 
 	items, err := api.MarshalItems(cfgs)
@@ -57,9 +66,7 @@ func TestChangedDirs_NoChanges(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expectedFilteredCfgs := make([]string, 0)
-
-	filteredCfgs, err := changedFiles(items, changedDirs)
+	filteredCfgs, err := ChangedFiles(items, changedDirs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,6 +82,9 @@ func TestChangedDirs_UnrelatedChange(t *testing.T) {
 			Path:     "path/a/pantalon.yaml",
 		},
 	}
+
+	expectedFilteredCfgs := []api.ConfigurationItem{}
+
 	changedFilesJson := []byte(`["path/b"]`)
 
 	items, err := api.MarshalItems(cfgs)
@@ -87,9 +97,7 @@ func TestChangedDirs_UnrelatedChange(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expectedFilteredCfgs := make([]string, 0)
-
-	filteredCfgs, err := changedFiles(items, changedDirs)
+	filteredCfgs, err := ChangedFiles(items, changedDirs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,6 +113,15 @@ func TestChangedDirs_HandleRootDir(t *testing.T) {
 			Path:     "a/pantalon.yaml",
 		},
 	}
+
+	expectedFilteredCfgs := []api.ConfigurationItem{
+		{
+			Name: "item1",
+			Path: "a/pantalon.yaml",
+			Dir:  "a",
+		},
+	}
+
 	changedFilesJson := []byte(`["."]`)
 
 	items, err := api.MarshalItems(cfgs)
@@ -117,9 +134,7 @@ func TestChangedDirs_HandleRootDir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expectedFilteredCfgs := []string{"a"}
-
-	filteredCfgs, err := changedFiles(items, changedDirs)
+	filteredCfgs, err := ChangedFiles(items, changedDirs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,6 +150,15 @@ func TestChangedDirs_NestedPantalonFile(t *testing.T) {
 			Path:     "a/b/c/pantalon.yaml",
 		},
 	}
+
+	expectedFilteredCfgs := []api.ConfigurationItem{
+		{
+			Name: "item1",
+			Path: "a/b/c/pantalon.yaml",
+			Dir:  "a/b/c",
+		},
+	}
+
 	changedFilesJson := []byte(`["a/b"]`)
 
 	items, err := api.MarshalItems(cfgs)
@@ -147,9 +171,7 @@ func TestChangedDirs_NestedPantalonFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expectedFilteredCfgs := []string{"a/b/c"}
-
-	filteredCfgs, err := changedFiles(items, changedDirs)
+	filteredCfgs, err := ChangedFiles(items, changedDirs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,6 +195,20 @@ func TestChangedDirs_Mixed(t *testing.T) {
 			Path:     "a/b/3/pantalon.yaml",
 		},
 	}
+
+	expectedFilteredCfgs := []api.ConfigurationItem{
+		{
+			Name: "item1",
+			Path: "a/b/1/pantalon.yaml",
+			Dir:  "a/b/1",
+		},
+		{
+			Name: "item2",
+			Path: "a/b/2/pantalon.yaml",
+			Dir:  "a/b/2",
+		},
+	}
+
 	changedFilesJson := []byte(`["a/b/1","a/b/2"]`)
 
 	items, err := api.MarshalItems(cfgs)
@@ -185,12 +221,7 @@ func TestChangedDirs_Mixed(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expectedFilteredCfgs := []string{
-		"a/b/1",
-		"a/b/2",
-	}
-
-	filteredCfgs, err := changedFiles(items, changedDirs)
+	filteredCfgs, err := ChangedFiles(items, changedDirs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -207,6 +238,15 @@ func TestChangedDirs_ChangedDirInsidePantalonCfg(t *testing.T) {
 			Path:     "a/b/1/pantalon.yaml",
 		},
 	}
+
+	expectedFilteredCfgs := []api.ConfigurationItem{
+		{
+			Name: "item1",
+			Path: "a/b/1/pantalon.yaml",
+			Dir:  "a/b/1",
+		},
+	}
+
 	changedFilesJson := []byte(`["a/b/1/modules/foo"]`)
 
 	items, err := api.MarshalItems(cfgs)
@@ -219,11 +259,7 @@ func TestChangedDirs_ChangedDirInsidePantalonCfg(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expectedFilteredCfgs := []string{
-		"a/b/1",
-	}
-
-	filteredCfgs, err := changedFiles(items, changedDirs)
+	filteredCfgs, err := ChangedFiles(items, changedDirs)
 	if err != nil {
 		t.Fatal(err)
 	}

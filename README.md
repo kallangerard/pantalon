@@ -170,6 +170,26 @@ pantalon --output-format=yaml
     gcp-service-account: infrastructure@pantalon-qa.iam.gserviceaccount.com
 ```
 
+### Changed Directories
+
+Pantalon can filter configurations based on the directories changed in the git commit.
+
+```shell
+pantalon --output-format=yaml --changed-dirs='["terraform/compute/environments/dev",terraform/data/environments/dev"]'
+```
+
+The changed-dirs argument has been designed to be supplied by [tj-actions/changed-files](https://github.com/tj-actions/changed-files) using the `dir_names` option.
+
+```yaml
+    - name: Run changed-files with dir_names
+      id: changed-files-dir-names
+      uses: tj-actions/changed-files@v45
+      with:
+        dir_names: "true"
+```
+
+```yaml
+
 ## Roadmap
 
 - [ ] Support listing dependencies of a root module within the pantalon file.
