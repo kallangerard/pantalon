@@ -38,7 +38,7 @@ jobs:
         env:
           CHANGED_DIRS: ${{ steps.changed-dirs.outputs.all_changed_files }}
         run: |
-          ./pantalon --changed-dirs='${CHANGED_DIRS}' > "${RUNNER_TEMP}/configs.json"
+          ./pantalon --changed-dirs=${CHANGED_DIRS} > "${RUNNER_TEMP}/configs.json"
 
           echo "Configs: "
           jq '.' "${RUNNER_TEMP}/configs.json"
