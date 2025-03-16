@@ -62,7 +62,7 @@ jobs:
 
       - name: Print Context
         run: |
-          echo "Service Account: ${{ matrix.configs.service_account }}"
+          echo "Service Account: ${{ matrix.configs.context.gcp-service-account }}"
 
       - name: Print working directory
         run: |
