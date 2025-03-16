@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -45,8 +44,6 @@ func main() {
 	switch *outputFormat {
 	case "json":
 		outputJson(items)
-	case "json-compact":
-		outputJsonCompact(items)
 	case "yaml":
 		outputYaml(items)
 	default:
@@ -55,17 +52,11 @@ func main() {
 }
 
 func outputJson(configurations []api.ConfigurationItem) {
-	data, err := json.MarshalIndent(configurations, "", "  ")
+	data, err := yaml.MarshalWithOptions(configurations,
+		yaml.JSON(),
+	)
 	if err != nil {
 		log.Fatalf("Error marshaling json: %v", err)
-	}
-	fmt.Println(string(data))
-}
-
-func outputJsonCompact(configurations []api.ConfigurationItem) {
-	data, err := json.Marshal(configurations)
-	if err != nil {
-		log.Fatalf("Error marshaling json-compact: %v", err)
 	}
 	fmt.Println(string(data))
 }
