@@ -1,0 +1,68 @@
+on:
+  push:
+
+jobs:
+  test-define-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      configs: ${{ steps.pantalon.outputs.configs }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v4
+        with:
+          go-version: 1.23
+
+      - name: Download Dependencies
+        run: go mod download
+
+      - name: Build
+        run: go build -o pantalon ./cmd/pantalon
+
+      # - name: Run changed-files with dir_names
+      #   id: changed-dirs
+      #   uses: tj-actions/changed-files@v45
+      #   with:
+      #     dir_names: "true"
+
+      - name: Mock Get Changed Directories
+        id: changed-dirs
+        run: |
+          echo 'all_changed_files=["testdata/terraform/single-dir","examples/terraform/compute"]' >> $GITHUB_OUTPUT
+
+      - name: Get Pantalon Configs
+        id: pantalon
+        env:
+          CHANGED_DIRS: ${{ steps.changed-dirs.outputs.all_changed_files }}
+        run: |
+          ./pantalon --changed-dirs='${CHANGED_DIRS}' > "${RUNNER_TEMP}/configs.json"
+
+          echo "Configs: "
+          jq '.' "${RUNNER_TEMP}/configs.json"
+          echo 'configs=$(cat "${RUNNER_TEMP}/configs.json")' >> "$GITHUB_OUTPUT"
+
+  test-using-matrix:
+    runs-on: ubuntu-latest
+    needs: test-define-matrix
+    strategy:
+      matrix:
+        configs: ${{ fromJSON(needs.test-define-matrix.outputs.configs) }}
+
+    defaults:
+      run:
+        working-directory: ${{ matrix.configs.dir }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Print Context
+        run: |
+          echo "Service Account: ${{ matrix.configs.service_account }}"
+
+      - name: Print working directory
+        run: |
+          pwd
