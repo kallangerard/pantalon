@@ -1,8 +1,11 @@
+name: ci-matrix
+
 on:
   push:
 
 jobs:
   test-define-matrix:
+    name: Define Matrix
     runs-on: ubuntu-latest
     outputs:
       configs: ${{ steps.pantalon.outputs.configs }}
@@ -45,7 +48,7 @@ jobs:
           echo "configs=$CONFIGS" >> "$GITHUB_OUTPUT"
 
   test-using-matrix:
-    name: ${{ matrix.configs.path }}
+    name: ${{ matrix.configs.name }} TF Plan
     runs-on: ubuntu-latest
     needs: test-define-matrix
     strategy:
