@@ -1,0 +1,82 @@
+name: Terraform Plan
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "**/*.tf"
+      - "**/*.tfvars"
+      - "**/pantalon.yaml"
+
+jobs:
+  define-matrix:
+    name: Define Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      configs: ${{ steps.pantalon.outputs.configs }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run changed-files with dir_names
+        id: changed-dirs
+        uses: tj-actions/changed-files@v45
+        with:
+          dir_names: "true"
+
+      - name: Install Pantalon
+        run: |
+          echo "TODO:"
+
+      - name: Get Pantalon Configs
+        id: pantalon
+        env:
+          CHANGED_DIRS: ${{ steps.changed-dirs.outputs.all_changed_files }}
+        run: |
+          CONFIGS=$(pantalon --changed-dirs="${CHANGED_DIRS}")
+
+          echo "Configs: "
+          echo "$CONFIGS" | jq '.'
+          echo "configs=$CONFIGS" >> "$GITHUB_OUTPUT"
+
+  plan:
+    name: ${{ matrix.configs.name }}
+    needs:
+      - define-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        configs: ${{ fromJSON(needs.define-matrix.outputs.configs) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.configs.dir }}
+    env:
+      TF_IN_AUTOMATION: "true"
+      TF_INPUT: "false"
+
+    permissions:
+      contents: "read"
+      id-token: "write"
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          service_account: ${{ matrix.configs.context.gcp-service-account }}
+          workload_identity_provider: projects/12345678912345/locations/global/workloadIdentityPools/my-identity-pool/providers/my-provider
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+
+      - name: Terraform Plan
+        run: |
+          terraform init
+          terraform plan

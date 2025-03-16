@@ -188,6 +188,42 @@ The changed-dirs argument has been designed to be supplied by [tj-actions/change
         dir_names: "true"
 ```
 
+### Matrix
+
+The primary intent is to  use Pantalon to generate a matrix of configurations to be executed by a GitHub Actions.
+
+```yaml
+...
+jobs:
+  ...
+  plan:
+    name: ${{ matrix.configs.name }}
+    needs:
+      - define-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        configs: ${{ fromJSON(needs.define-matrix.outputs.configs) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.configs.dir }}
+    ...
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          service_account: ${{ matrix.configs.context.gcp-service-account }}
+          workload_identity_provider: projects/12345678912345/locations/global/workloadIdentityPools/my-identity-pool/providers/my-provider
+      ...
+      - name: Terraform Plan
+        run: |
+          terraform init
+          terraform plan
+```
+
+See the [example](examples/.github/workflows/terraform-plan.yaml) for the full workflow.
+
 ## Roadmap
 
 - [ ] Support listing dependencies of a root module within the pantalon file.
