@@ -123,47 +123,47 @@ pantalon --output-format=yaml
 ```
 
 ```yaml
-- name: pantalon-example-compute-dev
+- name: compute-dev
   path: terraform/compute/environments/dev/pantalon.yaml
   dir: terraform/compute/environments/dev
   context:
     gcp-service-account: infrastructure@pantalon-dev.iam.gserviceaccount.com
-- name: pantalon-example-compute-prod
+- name: compute-prod
   path: terraform/compute/environments/prod/pantalon.yaml
   dir: terraform/compute/environments/prod
   context:
     gcp-service-account: infrastructure@pantalon-prod.iam.gserviceaccount.com
-- name: pantalon-example-compute-qa
+- name: compute-qa
   path: terraform/compute/environments/qa/pantalon.yaml
   dir: terraform/compute/environments/qa
   context:
     gcp-service-account: infrastructure@pantalon-qa.iam.gserviceaccount.com
-- name: pantalon-example-data-dev
+- name: data-dev
   path: terraform/data/environments/dev/pantalon.yaml
   dir: terraform/data/environments/dev
   context:
     gcp-service-account: infrastructure@pantalon-dev.iam.gserviceaccount.com
-- name: pantalon-example-data-prod
+- name: data-prod
   path: terraform/data/environments/prod/pantalon.yaml
   dir: terraform/data/environments/prod
   context:
     gcp-service-account: infrastructure@pantalon-prod.iam.gserviceaccount.com
-- name: pantalon-example-data-qa
+- name: data-qa
   path: terraform/data/environments/qa/pantalon.yaml
   dir: terraform/data/environments/qa
   context:
     gcp-service-account: infrastructure@pantalon-qa.iam.gserviceaccount.com
-- name: pantalon-example-lbl-dev
+- name: lbl-dev
   path: terraform/load-balancer/environments/dev/pantalon.yaml
   dir: terraform/load-balancer/environments/dev
   context:
     gcp-service-account: infrastructure@pantalon-dev.iam.gserviceaccount.com
-- name: pantalon-example-lbl-prod
+- name: lbl-prod
   path: terraform/load-balancer/environments/prod/pantalon.yaml
   dir: terraform/load-balancer/environments/prod
   context:
     gcp-service-account: infrastructure@pantalon-prod.iam.gserviceaccount.com
-- name: pantalon-example-lbl-qa
+- name: lbl-qa
   path: terraform/load-balancer/environments/qa/pantalon.yaml
   dir: terraform/load-balancer/environments/qa
   context:

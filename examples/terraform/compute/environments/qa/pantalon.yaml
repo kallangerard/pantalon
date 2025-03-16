@@ -3,7 +3,7 @@ apiVersion: pantalon.kallan.dev/v1alpha1
 kind: TerraformConfiguration
 
 metadata:
-  name: pantalon-example-compute-qa
+  name: compute-qa
 
 context:
   gcp-service-account: infrastructure@pantalon-qa.iam.gserviceaccount.com
