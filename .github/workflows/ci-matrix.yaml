@@ -38,11 +38,11 @@ jobs:
         env:
           CHANGED_DIRS: ${{ steps.changed-dirs.outputs.all_changed_files }}
         run: |
-          ./pantalon --changed-dirs=${CHANGED_DIRS} > "${RUNNER_TEMP}/configs.json"
+          CONFIGS=$(./pantalon --changed-dirs="${CHANGED_DIRS}")
 
           echo "Configs: "
-          jq '.' "${RUNNER_TEMP}/configs.json"
-          echo "configs=$(cat \"${RUNNER_TEMP}/configs.json\")" >> "$GITHUB_OUTPUT"
+          echo "$CONFIGS" | jq '.'
+          echo "configs=$CONFIGS" >> "$GITHUB_OUTPUT"
 
   test-using-matrix:
     runs-on: ubuntu-latest
