@@ -42,7 +42,7 @@ jobs:
 
           echo "Configs: "
           jq '.' "${RUNNER_TEMP}/configs.json"
-          echo 'configs=$(cat "${RUNNER_TEMP}/configs.json")' >> "$GITHUB_OUTPUT"
+          echo "configs=$(cat \"${RUNNER_TEMP}/configs.json\")" >> "$GITHUB_OUTPUT"
 
   test-using-matrix:
     runs-on: ubuntu-latest
