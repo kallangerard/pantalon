@@ -4,7 +4,7 @@ go 1.23.4
 
 require (
 	github.com/goccy/go-yaml v1.18.0
-	github.com/stretchr/testify v1.11.0
+	github.com/stretchr/testify v1.11.1
 )
 
 require (
