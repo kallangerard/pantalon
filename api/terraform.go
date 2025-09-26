@@ -22,18 +22,20 @@ type config struct {
 }
 
 type TerraformConfiguration struct {
-	ApiVersion string            `yaml:"apiVersion"`
-	Kind       string            `yaml:"kind"`
-	Metadata   Metadata          `yaml:"metadata"`
-	Context    map[string]string `yaml:"context,omitempty"`
-	Path       string
+	ApiVersion   string            `yaml:"apiVersion"`
+	Kind         string            `yaml:"kind"`
+	Metadata     Metadata          `yaml:"metadata"`
+	Context      map[string]string `yaml:"context,omitempty"`
+	Dependencies []string          `yaml:"dependencies,omitempty"`
+	Path         string
 }
 
 type ConfigurationItem struct {
-	Name    string            `yaml:"name"`
-	Path    string            `yaml:"path"`
-	Dir     string            `yaml:"dir"`
-	Context map[string]string `yaml:"context"`
+	Name         string            `yaml:"name"`
+	Path         string            `yaml:"path"`
+	Dir          string            `yaml:"dir"`
+	Context      map[string]string `yaml:"context"`
+	Dependencies []string          `yaml:"dependencies,omitempty"`
 }
 
 type Metadata struct {
@@ -81,10 +83,11 @@ func MarshalItems(cfgs []TerraformConfiguration) ([]ConfigurationItem, error) {
 
 	for _, cfg := range cfgs {
 		item := ConfigurationItem{
-			Name:    cfg.Metadata.Name,
-			Context: cfg.Context,
-			Path:    cfg.Path,
-			Dir:     path.Dir(cfg.Path),
+			Name:         cfg.Metadata.Name,
+			Context:      cfg.Context,
+			Dependencies: cfg.Dependencies,
+			Path:         cfg.Path,
+			Dir:          path.Dir(cfg.Path),
 		}
 		items = append(items, item)
 	}

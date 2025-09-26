@@ -28,7 +28,7 @@ func main() {
 
 	var items = []api.ConfigurationItem{}
 
-	if changedDirsJson != nil {
+	if changedDirsJson != nil && *changedDirsJson != "" {
 		changedDirs, err := api.UnmarshalChangedFileJson([]byte(*changedDirsJson))
 		if err != nil {
 			log.Fatalf("Error unmarshaling changed dirs: %v", err)

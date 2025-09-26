@@ -85,6 +85,59 @@ metadata:
 	assert.EqualError(t, err, "invalid metadata.name")
 }
 
+func TestUnmarshalTerraformConfiguration_WithDependencies(t *testing.T) {
+	yamlDoc := `
+---
+apiVersion: pantalon.kallan.dev/v1alpha1
+kind: TerraformConfiguration
+metadata:
+  name: hello-world
+dependencies:
+  - ../modules/vpc
+  - ../modules/security-groups
+  - shared/terraform/modules/common
+`
+	cfg := config{}
+	tfCfg, err := cfg.Unmarshal([]byte(yamlDoc))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []string{
+		"../modules/vpc",
+		"../modules/security-groups", 
+		"shared/terraform/modules/common",
+	}
+	assert.Equal(t, expected, tfCfg.Dependencies)
+}
+
+func TestMarshalItems_WithDependencies(t *testing.T) {
+	input := []TerraformConfiguration{
+		{
+			Metadata:     Metadata{Name: "item1"},
+			Context:      map[string]string{"key1": "value1"},
+			Dependencies: []string{"../modules/shared", "../lib/common"},
+			Path:         "/path/to/item1/pantalon.yaml",
+		},
+	}
+	
+	expected := []ConfigurationItem{
+		{
+			Name:         "item1",
+			Context:      map[string]string{"key1": "value1"},
+			Dependencies: []string{"../modules/shared", "../lib/common"},
+			Path:         "/path/to/item1/pantalon.yaml",
+			Dir:          "/path/to/item1",
+		},
+	}
+
+	result, err := MarshalItems(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, expected, result)
+}
+
 func TestUnmarshalTerraformConfiguration_InvalidMetadataNameDots(t *testing.T) {
 	yamlDoc := `
 ---
@@ -115,10 +168,11 @@ func TestMarshalItems(t *testing.T) {
 			},
 			expected: []ConfigurationItem{
 				{
-					Name:    "item1",
-					Context: map[string]string{"key1": "value1"},
-					Path:    "/path/to/item1/pantalon.yaml",
-					Dir:     "/path/to/item1",
+					Name:         "item1",
+					Context:      map[string]string{"key1": "value1"},
+					Dependencies: nil,
+					Path:         "/path/to/item1/pantalon.yaml",
+					Dir:          "/path/to/item1",
 				},
 			},
 		},
@@ -138,16 +192,18 @@ func TestMarshalItems(t *testing.T) {
 			},
 			expected: []ConfigurationItem{
 				{
-					Name:    "item1",
-					Context: map[string]string{"key1": "value1"},
-					Path:    "/path/to/item1/pantalon.yaml",
-					Dir:     "/path/to/item1",
+					Name:         "item1",
+					Context:      map[string]string{"key1": "value1"},
+					Dependencies: nil,
+					Path:         "/path/to/item1/pantalon.yaml",
+					Dir:          "/path/to/item1",
 				},
 				{
-					Name:    "item2",
-					Context: map[string]string{"key2": "value2"},
-					Path:    "/path/to/item2/pantalon.yaml",
-					Dir:     "/path/to/item2",
+					Name:         "item2",
+					Context:      map[string]string{"key2": "value2"},
+					Dependencies: nil,
+					Path:         "/path/to/item2/pantalon.yaml",
+					Dir:          "/path/to/item2",
 				},
 			},
 		},
@@ -162,10 +218,11 @@ func TestMarshalItems(t *testing.T) {
 			},
 			expected: []ConfigurationItem{
 				{
-					Name:    "item1",
-					Context: map[string]string{},
-					Path:    "/path/to/item1/pantalon.yaml",
-					Dir:     "/path/to/item1",
+					Name:         "item1",
+					Context:      map[string]string{},
+					Dependencies: nil,
+					Path:         "/path/to/item1/pantalon.yaml",
+					Dir:          "/path/to/item1",
 				},
 			},
 		},
