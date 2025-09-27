@@ -9,6 +9,5 @@ context:
   gcp-service-account: infrastructure@pantalon-dev.iam.gserviceaccount.com
 
 dependencies:
-  - ../../modules/instance-group
-  - ../../modules/template
-  - ../../../data/modules/db-instance
+  - /terraform/compute/modules/**
+  - /terraform/data/modules/db-instance

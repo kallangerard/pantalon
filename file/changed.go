@@ -10,7 +10,8 @@ import (
 // ChangedFiles filters the list of unfiltered configuration files based on the list of changed directories.
 // It includes configurations if:
 // 1. The changed directory overlaps with the configuration directory
-// 2. The changed directory overlaps with any of the configuration's dependencies
+// 2. The changed directory overlaps with any of the configuration's dependencies (absolute paths from repo root)
+// Dependencies support glob patterns (e.g., /terraform/modules/**)
 func ChangedFiles(allItems []api.ConfigurationItem, changedDirs []string) ([]api.ConfigurationItem, error) {
 	filteredCfgs := make([]api.ConfigurationItem, 0)
 
@@ -27,21 +28,34 @@ func ChangedFiles(allItems []api.ConfigurationItem, changedDirs []string) ([]api
 			
 			// Check if changed dir overlaps with any dependency
 			for _, dependency := range cfg.Dependencies {
-				var resolvedDependency string
+				// Dependencies must be absolute paths from repository root (starting with /)
+				// Remove leading slash for comparison with changed directories
+				dependencyPath := strings.TrimPrefix(dependency, "/")
 				
-				// If dependency is relative (starts with ./ or ../), resolve relative to config directory
-				// Otherwise, treat as absolute path from repository root
-				if strings.HasPrefix(dependency, "./") || strings.HasPrefix(dependency, "../") {
-					resolvedDependency = filepath.Join(cfg.Dir, dependency)
-					resolvedDependency = filepath.Clean(resolvedDependency)
+				// Check for glob pattern support
+				if strings.Contains(dependency, "*") {
+					// Use filepath.Match for glob patterns
+					if matched, err := filepath.Match(dependencyPath, dir); err == nil && matched {
+						filteredCfgs = append(filteredCfgs, cfg)
+						included = true
+						break
+					}
+					// Also check if the changed dir is a parent of the glob pattern
+					// For patterns like /terraform/modules/**, a change in /terraform/modules should match
+					globBase := strings.Split(dependencyPath, "*")[0]
+					globBase = strings.TrimSuffix(globBase, "/")
+					if strings.HasPrefix(dir, globBase) || strings.HasPrefix(globBase, dir) {
+						filteredCfgs = append(filteredCfgs, cfg)
+						included = true
+						break
+					}
 				} else {
-					resolvedDependency = dependency
-				}
-				
-				if strings.HasPrefix(dir, resolvedDependency) || strings.HasPrefix(resolvedDependency, dir) {
-					filteredCfgs = append(filteredCfgs, cfg)
-					included = true
-					break
+					// Exact path matching for non-glob dependencies
+					if strings.HasPrefix(dir, dependencyPath) || strings.HasPrefix(dependencyPath, dir) {
+						filteredCfgs = append(filteredCfgs, cfg)
+						included = true
+						break
+					}
 				}
 			}
 			

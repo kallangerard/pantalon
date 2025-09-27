@@ -246,7 +246,7 @@ func TestChangedDirs_DependencyChanged(t *testing.T) {
 		{
 			Metadata:     api.Metadata{Name: "app1"},
 			Path:         "environments/dev/pantalon.yaml",
-			Dependencies: []string{"shared/modules/vpc", "shared/modules/database"},
+			Dependencies: []string{"/shared/modules/vpc", "/shared/modules/database"},
 		},
 		{
 			Metadata: api.Metadata{Name: "app2"},
@@ -260,7 +260,7 @@ func TestChangedDirs_DependencyChanged(t *testing.T) {
 			Path:         "environments/dev/pantalon.yaml",
 			Dir:          "environments/dev",
 			Context:      nil,
-			Dependencies: []string{"shared/modules/vpc", "shared/modules/database"},
+			Dependencies: []string{"/shared/modules/vpc", "/shared/modules/database"},
 		},
 	}
 
@@ -290,7 +290,7 @@ func TestChangedDirs_NestedDependencyChanged(t *testing.T) {
 		{
 			Metadata:     api.Metadata{Name: "web-app"},
 			Path:         "apps/web/pantalon.yaml",
-			Dependencies: []string{"modules/shared"},
+			Dependencies: []string{"/modules/shared"},
 		},
 	}
 
@@ -300,7 +300,7 @@ func TestChangedDirs_NestedDependencyChanged(t *testing.T) {
 			Path:         "apps/web/pantalon.yaml",
 			Dir:          "apps/web",
 			Context:      nil,
-			Dependencies: []string{"modules/shared"},
+			Dependencies: []string{"/modules/shared"},
 		},
 	}
 
@@ -331,7 +331,7 @@ func TestChangedDirs_DependencyContainsChange(t *testing.T) {
 		{
 			Metadata:     api.Metadata{Name: "backend"},
 			Path:         "services/backend/pantalon.yaml",
-			Dependencies: []string{"common/modules/database/postgres"},
+			Dependencies: []string{"/common/modules/database/postgres"},
 		},
 	}
 
@@ -341,7 +341,7 @@ func TestChangedDirs_DependencyContainsChange(t *testing.T) {
 			Path:         "services/backend/pantalon.yaml",
 			Dir:          "services/backend",
 			Context:      nil,
-			Dependencies: []string{"common/modules/database/postgres"},
+			Dependencies: []string{"/common/modules/database/postgres"},
 		},
 	}
 
@@ -372,12 +372,12 @@ func TestChangedDirs_MultipleDependencies(t *testing.T) {
 		{
 			Metadata:     api.Metadata{Name: "frontend"},
 			Path:         "apps/frontend/pantalon.yaml",
-			Dependencies: []string{"shared/modules/cdn", "shared/modules/dns"},
+			Dependencies: []string{"/shared/modules/cdn", "/shared/modules/dns"},
 		},
 		{
 			Metadata:     api.Metadata{Name: "backend"},
 			Path:         "apps/backend/pantalon.yaml",
-			Dependencies: []string{"shared/modules/database", "shared/modules/dns"},
+			Dependencies: []string{"/shared/modules/database", "/shared/modules/dns"},
 		},
 		{
 			Metadata: api.Metadata{Name: "monitoring"},
@@ -391,14 +391,14 @@ func TestChangedDirs_MultipleDependencies(t *testing.T) {
 			Path:         "apps/frontend/pantalon.yaml",
 			Dir:          "apps/frontend",
 			Context:      nil,
-			Dependencies: []string{"shared/modules/cdn", "shared/modules/dns"},
+			Dependencies: []string{"/shared/modules/cdn", "/shared/modules/dns"},
 		},
 		{
 			Name:         "backend",
 			Path:         "apps/backend/pantalon.yaml",
 			Dir:          "apps/backend",
 			Context:      nil,
-			Dependencies: []string{"shared/modules/database", "shared/modules/dns"},
+			Dependencies: []string{"/shared/modules/database", "/shared/modules/dns"},
 		},
 	}
 
@@ -424,17 +424,18 @@ func TestChangedDirs_MultipleDependencies(t *testing.T) {
 }
 
 // Test that normal directory changes still work with dependencies
-func TestChangedDirs_MixedDirectoryAndDependencyChanges(t *testing.T) {
+// Test glob pattern support in dependencies
+func TestChangedDirs_GlobPatternDependencies(t *testing.T) {
 	cfgs := []api.TerraformConfiguration{
 		{
 			Metadata:     api.Metadata{Name: "app1"},
 			Path:         "apps/app1/pantalon.yaml",
-			Dependencies: []string{"shared/vpc"},
+			Dependencies: []string{"/terraform/modules/**", "/shared/modules/*"},
 		},
 		{
 			Metadata:     api.Metadata{Name: "app2"},
 			Path:         "apps/app2/pantalon.yaml",
-			Dependencies: []string{"shared/database"},
+			Dependencies: []string{"/infra/modules/database"},
 		},
 	}
 
@@ -444,14 +445,59 @@ func TestChangedDirs_MixedDirectoryAndDependencyChanges(t *testing.T) {
 			Path:         "apps/app1/pantalon.yaml",
 			Dir:          "apps/app1",
 			Context:      nil,
-			Dependencies: []string{"shared/vpc"},
+			Dependencies: []string{"/terraform/modules/**", "/shared/modules/*"},
+		},
+	}
+
+	// A change in terraform/modules/vpc should match the /terraform/modules/** pattern
+	changedFilesJson := []byte(`["terraform/modules/vpc"]`)
+
+	items, err := api.MarshalItems(cfgs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changedDirs, err := api.UnmarshalChangedFileJson(changedFilesJson)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	filteredCfgs, err := ChangedFiles(items, changedDirs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, expectedFilteredCfgs, filteredCfgs)
+}
+
+func TestChangedDirs_MixedDirectoryAndDependencyChanges(t *testing.T) {
+	cfgs := []api.TerraformConfiguration{
+		{
+			Metadata:     api.Metadata{Name: "app1"},
+			Path:         "apps/app1/pantalon.yaml",
+			Dependencies: []string{"/shared/vpc"},
+		},
+		{
+			Metadata:     api.Metadata{Name: "app2"},
+			Path:         "apps/app2/pantalon.yaml",
+			Dependencies: []string{"/shared/database"},
+		},
+	}
+
+	expectedFilteredCfgs := []api.ConfigurationItem{
+		{
+			Name:         "app1",
+			Path:         "apps/app1/pantalon.yaml",
+			Dir:          "apps/app1",
+			Context:      nil,
+			Dependencies: []string{"/shared/vpc"},
 		},
 		{
 			Name:         "app2",
 			Path:         "apps/app2/pantalon.yaml",
 			Dir:          "apps/app2",
 			Context:      nil,
-			Dependencies: []string{"shared/database"},
+			Dependencies: []string{"/shared/database"},
 		},
 	}
 

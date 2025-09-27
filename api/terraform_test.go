@@ -93,9 +93,10 @@ kind: TerraformConfiguration
 metadata:
   name: hello-world
 dependencies:
-  - ../modules/vpc
-  - ../modules/security-groups
-  - shared/terraform/modules/common
+  - /terraform/modules/vpc
+  - /terraform/modules/security-groups
+  - /shared/terraform/modules/common
+  - /terraform/modules/**
 `
 	cfg := config{}
 	tfCfg, err := cfg.Unmarshal([]byte(yamlDoc))
@@ -104,9 +105,10 @@ dependencies:
 	}
 
 	expected := []string{
-		"../modules/vpc",
-		"../modules/security-groups", 
-		"shared/terraform/modules/common",
+		"/terraform/modules/vpc",
+		"/terraform/modules/security-groups", 
+		"/shared/terraform/modules/common",
+		"/terraform/modules/**",
 	}
 	assert.Equal(t, expected, tfCfg.Dependencies)
 }
@@ -116,7 +118,7 @@ func TestMarshalItems_WithDependencies(t *testing.T) {
 		{
 			Metadata:     Metadata{Name: "item1"},
 			Context:      map[string]string{"key1": "value1"},
-			Dependencies: []string{"../modules/shared", "../lib/common"},
+			Dependencies: []string{"/shared/modules/shared", "/lib/common"},
 			Path:         "/path/to/item1/pantalon.yaml",
 		},
 	}
@@ -125,7 +127,7 @@ func TestMarshalItems_WithDependencies(t *testing.T) {
 		{
 			Name:         "item1",
 			Context:      map[string]string{"key1": "value1"},
-			Dependencies: []string{"../modules/shared", "../lib/common"},
+			Dependencies: []string{"/shared/modules/shared", "/lib/common"},
 			Path:         "/path/to/item1/pantalon.yaml",
 			Dir:          "/path/to/item1",
 		},
