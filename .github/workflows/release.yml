@@ -47,7 +47,7 @@ jobs:
         run: |
           LATEST_TAG="${{ steps.latest_tag.outputs.latest_tag }}"
           
-          # Get commits since last tag, excluding deps scoped commits and pre-releases
+          # Get commits since last tag, excluding deps scoped commits
           if [ "$LATEST_TAG" = "v0.0.0" ]; then
             COMMITS=$(git log --pretty=format:"%s" | grep -v '^deps:' | grep -v '^deps(' || true)
           else
@@ -82,12 +82,14 @@ jobs:
           # Get commits since last tag, excluding deps commits
           if [ "$LATEST_TAG" = "v0.0.0" ]; then
             COMMITS=$(git log --pretty=format:"%s" | grep -v '^deps:' | grep -v '^deps(' || true)
+            COMMITS_BODY=$(git log --pretty=format:"%B" | grep -v '^deps:' | grep -v '^deps(' || true)
           else
             COMMITS=$(git log ${LATEST_TAG}..HEAD --pretty=format:"%s" | grep -v '^deps:' | grep -v '^deps(' || true)
+            COMMITS_BODY=$(git log ${LATEST_TAG}..HEAD --pretty=format:"%B" | grep -v '^deps:' | grep -v '^deps(' || true)
           fi
           
           # Check for breaking changes (BREAKING CHANGE in commit body or ! in type)
-          BREAKING=$(git log ${LATEST_TAG}..HEAD --pretty=format:"%B" | grep -i 'BREAKING CHANGE' || true)
+          BREAKING=$(echo "$COMMITS_BODY" | grep -i 'BREAKING CHANGE' || true)
           BREAKING_TYPE=$(echo "$COMMITS" | grep -E '^[a-z]+(\([a-z]+\))?!:' || true)
           
           if [ -n "$BREAKING" ] || [ -n "$BREAKING_TYPE" ]; then

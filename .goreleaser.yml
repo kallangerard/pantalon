@@ -17,8 +17,6 @@ builds:
       - amd64
       - arm64
     main: ./cmd/pantalon
-    ldflags:
-      - -s -w -X main.version={{.Version}}
 
 archives:
   - id: pantalon
@@ -52,13 +50,13 @@ changelog:
       - 'Merge branch'
   groups:
     - title: Features
-      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      regexp: '^.*?feat(\([[:word:]]+\))?!?:.+$'
       order: 0
     - title: 'Bug Fixes'
-      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      regexp: '^.*?fix(\([[:word:]]+\))?!?:.+$'
       order: 1
     - title: 'Performance Improvements'
-      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+      regexp: '^.*?perf(\([[:word:]]+\))?!?:.+$'
       order: 2
     - title: Others
       order: 999
