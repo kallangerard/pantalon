@@ -224,6 +224,32 @@ jobs:
 
 See the [example](examples/.github/workflows/terraform-plan.yaml) for the full workflow.
 
+## Releases
+
+Pantalon uses an automated release process that runs weekly on Fridays. The release workflow:
+
+- **Versioning**: Uses [Semantic Versioning](https://semver.org/) based on [Conventional Commits](https://www.conventionalcommits.org/)
+  - Breaking changes (`BREAKING CHANGE` or `!` in commit) → Major version bump (e.g., 1.0.0 → 2.0.0)
+  - New features (`feat:` prefix) → Minor version bump (e.g., 1.0.0 → 1.1.0)
+  - Bug fixes and other changes → Patch version bump (e.g., 1.0.0 → 1.0.1)
+  - Dependency updates (`deps:` or `deps(scope):`) do not trigger a new release
+
+- **Schedule**: Runs automatically every Friday at 10:00 UTC
+
+- **Manual Releases**: Can be triggered manually via the GitHub Actions "Release" workflow with an optional version increment override
+
+- **Release Assets**: Each release includes pre-built binaries for:
+  - Linux (amd64, arm64)
+  - macOS (amd64, arm64)  
+  - Windows (amd64, arm64)
+
+- **Release Notes**: Automatically generated from conventional commits since the last release
+
+### Release Naming
+
+- **Git Tag**: Uses the `v` prefix (e.g., `v1.2.3`)
+- **Release Name**: Omits the `v` prefix (e.g., `1.2.3`)
+
 ## Roadmap
 
 - [ ] Support listing dependencies of a root module within the pantalon file.
