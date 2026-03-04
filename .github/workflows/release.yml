@@ -1,0 +1,122 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Semantic version bump type'
+        required: true
+        type: choice
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version
+        id: version
+        run: |
+          LATEST=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)
+          if [ -z "$LATEST" ]; then
+            LATEST="v0.0.0"
+          fi
+          VERSION="${LATEST#v}"
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
+          case "${{ inputs.bump }}" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+          TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "prev_tag=$LATEST" >> "$GITHUB_OUTPUT"
+          echo "Next version: $TAG (from $LATEST)"
+
+      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version-file: go.mod
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Build binaries
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          mkdir -p dist
+          GOOS=linux GOARCH=amd64 go build \
+            -ldflags="-s -w" \
+            -o "dist/pantalon_${TAG}_linux_amd64" \
+            ./cmd/pantalon
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum * > checksums.txt
+
+      - name: Generate release notes
+        env:
+          PREV_TAG: ${{ steps.version.outputs.prev_tag }}
+        run: |
+          if [ "$PREV_TAG" = "v0.0.0" ]; then
+            RANGE="HEAD"
+          else
+            RANGE="${PREV_TAG}..HEAD"
+          fi
+
+          {
+            echo "## What's Changed"
+            echo ""
+
+            BREAKING=$(git log "$RANGE" --pretty=format:"%s (%h)" \
+              | grep -E '^[a-z]+(\([^)]+\))?!:' | sed 's/^/- /' || true)
+            FEATURES=$(git log "$RANGE" --pretty=format:"%s (%h)" \
+              | grep -E '^feat(\([^)]+\))?:' | sed 's/^/- /' || true)
+            FIXES=$(git log "$RANGE" --pretty=format:"%s (%h)" \
+              | grep -E '^fix(\([^)]+\))?:' | sed 's/^/- /' || true)
+            DOCS=$(git log "$RANGE" --pretty=format:"%s (%h)" \
+              | grep -E '^docs(\([^)]+\))?:' | sed 's/^/- /' || true)
+            MAINT=$(git log "$RANGE" --pretty=format:"%s (%h)" \
+              | grep -E '^(chore|ci|refactor|test|build|perf|style)(\([^)]+\))?:' \
+              | sed 's/^/- /' || true)
+
+            [ -n "$BREAKING" ] && printf "### Breaking Changes\n%s\n\n" "$BREAKING"
+            [ -n "$FEATURES" ] && printf "### Features\n%s\n\n" "$FEATURES"
+            [ -n "$FIXES" ] && printf "### Bug Fixes\n%s\n\n" "$FIXES"
+            [ -n "$DOCS" ] && printf "### Documentation\n%s\n\n" "$DOCS"
+            [ -n "$MAINT" ] && printf "### Maintenance\n%s\n\n" "$MAINT"
+          } > release_notes.md
+
+          cat release_notes.md
+
+      - name: Tag release
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git tag "$TAG"
+          git push origin "$TAG"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes-file release_notes.md \
+            dist/*
