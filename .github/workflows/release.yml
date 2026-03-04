@@ -1,24 +1,12 @@
 name: Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      bump:
-        description: 'Semantic version bump type'
-        required: true
-        type: choice
-        default: patch
-        options:
-          - patch
-          - minor
-          - major
+  push:
+    tags:
+      - 'v*.*.*'
 
 permissions:
   contents: write
-
-concurrency:
-  group: release
-  cancel-in-progress: false
 
 jobs:
   release:
@@ -30,39 +18,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Compute next version
-        id: version
-        run: |
-          LATEST=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)
-          if [ -z "$LATEST" ]; then
-            LATEST="v0.0.0"
-          fi
-          VERSION="${LATEST#v}"
-          MAJOR=$(echo "$VERSION" | cut -d. -f1)
-          MINOR=$(echo "$VERSION" | cut -d. -f2)
-          PATCH=$(echo "$VERSION" | cut -d. -f3)
-          case "${{ inputs.bump }}" in
-            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
-            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
-            patch) PATCH=$((PATCH + 1)) ;;
-          esac
-          TAG="v${MAJOR}.${MINOR}.${PATCH}"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "Next version: $TAG (from $LATEST)"
-
       - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
         with:
           go-version-file: go.mod
 
       - name: Run tests
         run: go test ./...
-
-      - name: Tag release
-        env:
-          TAG: ${{ steps.version.outputs.tag }}
-        run: |
-          git tag "$TAG"
-          git push origin "$TAG"
 
       - uses: goreleaser/goreleaser-action@9c156ee2a9596e4b3e54af17d2be773fce1ab34e # v6.3.0
         with:
