@@ -4,6 +4,7 @@
   "packages": {
     ".": {
       "release-type": "go",
-      "initial-version": "0.0.1"
+      "initial-version": "0.1.0"
     }
+  }
 }
