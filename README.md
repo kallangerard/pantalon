@@ -228,9 +228,8 @@ See the [example](examples/.github/workflows/terraform-plan.yaml) for the full w
 
 - [ ] Support listing dependencies of a root module within the pantalon file.
 - [ ] Allow filtering by label selectors.
-- [ ] Allow filtering by path glob.
-- [ ] Filter by the union of git files changed and directories detected
+- [x] Allow filtering by path glob.
+- [x] Filter by the union of git files changed and directories detected
 - [ ] Support other configuration use cases other than Terraform.
 - [ ] Create a Docker release.
-- [ ] Create a GitHub action.
-- [ ] Allow the supply of arbitrary metadata.
+- [x] Allow the supply of arbitrary metadata.
