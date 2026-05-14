@@ -188,6 +188,63 @@ The changed-dirs argument has been designed to be supplied by [tj-actions/change
         dir_names: "true"
 ```
 
+### Path Glob Filtering
+
+Pantalon can filter configurations by directory path using [doublestar](https://github.com/bmatcuk/doublestar) glob patterns. Pass `--path-glob` one or more times; a configuration is included if its directory matches **any** of the supplied patterns (OR logic).
+
+```shell
+# All configurations under terraform/compute
+pantalon --output-format=yaml --path-glob='terraform/compute/**'
+```
+
+```yaml
+- name: compute-dev
+  path: terraform/compute/environments/dev/pantalon.yaml
+  dir: terraform/compute/environments/dev
+  context:
+    gcp-service-account: infrastructure@pantalon-dev.iam.gserviceaccount.com
+- name: compute-prod
+  path: terraform/compute/environments/prod/pantalon.yaml
+  dir: terraform/compute/environments/prod
+  context:
+    gcp-service-account: infrastructure@pantalon-prod.iam.gserviceaccount.com
+- name: compute-qa
+  path: terraform/compute/environments/qa/pantalon.yaml
+  dir: terraform/compute/environments/qa
+  context:
+    gcp-service-account: infrastructure@pantalon-qa.iam.gserviceaccount.com
+```
+
+Use `*` to match a single path segment and `**` to match any number of segments:
+
+| Pattern | Matches |
+|---|---|
+| `terraform/compute/**` | Every configuration nested under `terraform/compute/` |
+| `**/environments/prod` | Every `prod` environment regardless of component |
+| `terraform/*/environments/dev` | Every `dev` environment, one component level deep |
+| `terraform/compute/environments/dev` | Exact directory match |
+
+Multiple `--path-glob` flags are combined with OR logic — a configuration is included if it matches at least one pattern:
+
+```shell
+# Production environments for compute and data only
+pantalon --output-format=yaml \
+  --path-glob='terraform/compute/environments/prod' \
+  --path-glob='terraform/data/environments/prod'
+```
+
+`--path-glob` can be combined with `--changed-dirs`. Changed-dirs filtering is applied first, and glob filtering is applied to the result:
+
+```shell
+pantalon --output-format=yaml \
+  --changed-dirs='["terraform/compute/environments/dev","terraform/data/environments/dev"]' \
+  --path-glob='terraform/compute/**'
+```
+
+This returns only changed configurations that also match the glob — in this case, just `compute-dev`.
+
+See the [path glob example](examples/.github/workflows/terraform-plan-prod.yaml) for a GitHub Actions workflow that uses `--path-glob` to target production environments.
+
 ### Matrix
 
 The primary intent is to  use Pantalon to generate a matrix of configurations to be executed by a GitHub Actions.

@@ -1,0 +1,77 @@
+name: Terraform Plan (Production)
+
+# Demonstrates using --path-glob to target only production environments.
+# This workflow runs on every push to main and plans all prod configurations,
+# regardless of which files changed.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "**/*.tf"
+      - "**/*.tfvars"
+      - "**/pantalon.yaml"
+
+jobs:
+  define-matrix:
+    name: Define Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      configs: ${{ steps.pantalon.outputs.configs }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Pantalon
+        run: |
+          echo "TODO:"
+
+      - name: Get Pantalon Configs
+        id: pantalon
+        run: |
+          # Use --path-glob to restrict output to production environments only.
+          # Pass --path-glob multiple times to add more patterns (OR logic).
+          CONFIGS=$(pantalon --path-glob='**/environments/prod')
+
+          echo "Configs: "
+          echo "$CONFIGS" | jq '.'
+          echo "configs=$CONFIGS" >> "$GITHUB_OUTPUT"
+
+  plan:
+    name: ${{ matrix.configs.name }}
+    needs:
+      - define-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        configs: ${{ fromJSON(needs.define-matrix.outputs.configs) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.configs.dir }}
+    env:
+      TF_IN_AUTOMATION: "true"
+      TF_INPUT: "false"
+
+    permissions:
+      contents: "read"
+      id-token: "write"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          service_account: ${{ matrix.configs.context.gcp-service-account }}
+          workload_identity_provider: projects/12345678912345/locations/global/workloadIdentityPools/my-identity-pool/providers/my-provider
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+
+      - name: Terraform Plan
+        run: |
+          terraform init
+          terraform plan
