@@ -9,10 +9,26 @@ import (
 )
 
 var globItems = []api.ConfigurationItem{
-	{Name: "compute-dev", Path: "terraform/compute/environments/dev/pantalon.yaml", Dir: "terraform/compute/environments/dev"},
-	{Name: "compute-prod", Path: "terraform/compute/environments/prod/pantalon.yaml", Dir: "terraform/compute/environments/prod"},
-	{Name: "network-dev", Path: "terraform/network/environments/dev/pantalon.yaml", Dir: "terraform/network/environments/dev"},
-	{Name: "network-prod", Path: "terraform/network/environments/prod/pantalon.yaml", Dir: "terraform/network/environments/prod"},
+	{
+		Name: "compute-dev",
+		Path: "terraform/compute/environments/dev/pantalon.yaml",
+		Dir:  "terraform/compute/environments/dev",
+	},
+	{
+		Name: "compute-prod",
+		Path: "terraform/compute/environments/prod/pantalon.yaml",
+		Dir:  "terraform/compute/environments/prod",
+	},
+	{
+		Name: "network-dev",
+		Path: "terraform/network/environments/dev/pantalon.yaml",
+		Dir:  "terraform/network/environments/dev",
+	},
+	{
+		Name: "network-prod",
+		Path: "terraform/network/environments/prod/pantalon.yaml",
+		Dir:  "terraform/network/environments/prod",
+	},
 }
 
 func TestGlobFilter_DoublestarRecursive(t *testing.T) {
