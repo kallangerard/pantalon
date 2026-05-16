@@ -2,8 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "packageRules": [
     {
-      "matchManagers": ["gomod"],
-      "matchDepNames": ["go"],
+      "matchPackageNames": ["go"],
       "matchUpdateTypes": ["patch"],
       "automerge": true
     }
