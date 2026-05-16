@@ -3,6 +3,7 @@
   "packageRules": [
     {
       "matchManagers": ["gomod"],
+      "matchDepNames": ["go"],
       "matchUpdateTypes": ["patch"],
       "automerge": true
     }
