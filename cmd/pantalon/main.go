@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/goccy/go-yaml"
 
@@ -20,12 +21,43 @@ func (p *pathGlobs) Set(v string) error {
 	return nil
 }
 
+func init() {
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, `pantalon - identify Terraform root module configurations for CI/CD pipelines
+
+Walks the repository from the current directory, finds pantalon.yaml marker
+files, and emits a machine-readable list of Terraform root modules suitable
+for use in GitHub Actions job matrices or other CI/CD tooling.
+
+Usage:
+  pantalon [flags]
+
+Flags:
+`)
+		flag.PrintDefaults()
+		fmt.Fprintf(os.Stderr, `
+Examples:
+  pantalon
+  pantalon --output-format=yaml
+  pantalon --changed-dirs='["terraform/compute/environments/dev"]'
+  pantalon --path-glob='terraform/compute/**'
+  pantalon --path-glob='terraform/compute/**' --path-glob='terraform/data/**'
+`)
+	}
+}
+
 func main() {
-	outputFormat := flag.String("output-format", "json", "Output format (json)")
-	changedDirsJson := flag.String("changed-dirs", "", `[".", "foo", "foo/bar"]`)
+	help := flag.Bool("help", false, "Show help")
+	outputFormat := flag.String("output-format", "json", "Output format: json or yaml")
+	changedDirsJson := flag.String("changed-dirs", "", `JSON array of changed directories; filters output to matching configs (e.g. '["terraform/compute/environments/dev"]')`)
 	var globs pathGlobs
 	flag.Var(&globs, "path-glob", "Doublestar glob pattern to filter configurations by directory path (repeatable, OR logic)")
 	flag.Parse()
+
+	if *help {
+		flag.Usage()
+		os.Exit(0)
+	}
 
 	configurations, err := file.Search()
 	if err != nil {
