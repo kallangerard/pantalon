@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0](https://github.com/kallangerard/pantalon/compare/v0.1.0...v0.2.0) (2026-06-05)
+
+
+### Features
+
+* **cmd:** enhance help output ([2effedb](https://github.com/kallangerard/pantalon/commit/2effedb8bae545c7f4276478faf25faa164b533a))
+
+
+### Bug Fixes
+
+* **release:** add explicit packages block to resolve v5 component mismatch ([#73](https://github.com/kallangerard/pantalon/issues/73)) ([7ac233e](https://github.com/kallangerard/pantalon/commit/7ac233ea17c94b1ecb9f5842adcb0ea4c210b907))
+
 ## 0.1.0 (2026-03-05)
 
 
