@@ -69,26 +69,9 @@ func main() {
 		log.Fatalf("Error marshaling items: %v", err)
 	}
 
-	var items = []api.ConfigurationItem{}
-
-	if changedDirsJson != nil {
-		changedDirs, err := api.UnmarshalChangedFileJson([]byte(*changedDirsJson))
-		if err != nil {
-			log.Fatalf("Error unmarshaling changed dirs: %v", err)
-		}
-		items, err = file.ChangedFiles(unfilteredItems, changedDirs)
-		if err != nil {
-			log.Fatalf("Error filtering changed files: %v", err)
-		}
-	} else {
-		items = unfilteredItems
-	}
-
-	if len(globs) > 0 {
-		items, err = file.GlobFilter(items, globs)
-		if err != nil {
-			log.Fatalf("Error filtering by path glob: %v", err)
-		}
+	items, err := filterItems(unfilteredItems, *changedDirsJson, globs)
+	if err != nil {
+		log.Fatalf("Error filtering items: %v", err)
 	}
 
 	switch *outputFormat {
@@ -99,6 +82,33 @@ func main() {
 	default:
 		log.Fatalf("Unsupported output format: %s", *outputFormat)
 	}
+}
+
+func filterItems(unfilteredItems []api.ConfigurationItem, changedDirsJson string, globs []string) ([]api.ConfigurationItem, error) {
+	var items []api.ConfigurationItem
+
+	if changedDirsJson != "" {
+		changedDirs, err := api.UnmarshalChangedFileJson([]byte(changedDirsJson))
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshaling changed dirs: %w", err)
+		}
+		items, err = file.ChangedFiles(unfilteredItems, changedDirs)
+		if err != nil {
+			return nil, fmt.Errorf("error filtering changed files: %w", err)
+		}
+	} else {
+		items = unfilteredItems
+	}
+
+	if len(globs) > 0 {
+		var err error
+		items, err = file.GlobFilter(items, globs)
+		if err != nil {
+			return nil, fmt.Errorf("error filtering by path glob: %w", err)
+		}
+	}
+
+	return items, nil
 }
 
 func outputJson(configurations []api.ConfigurationItem) {
