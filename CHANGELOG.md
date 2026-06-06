@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/kallangerard/pantalon/compare/v0.2.0...v0.2.1) (2026-06-06)
+
+
+### Bug Fixes
+
+* allow not passing changed-dirs ([#75](https://github.com/kallangerard/pantalon/issues/75)) ([0437179](https://github.com/kallangerard/pantalon/commit/0437179ffa4881e10f01fdc99535c52c5988bf89))
+
 ## [0.2.0](https://github.com/kallangerard/pantalon/compare/v0.1.0...v0.2.0) (2026-06-05)
 
 
