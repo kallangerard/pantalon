@@ -188,6 +188,8 @@ The changed-dirs argument has been designed to be supplied by [tj-actions/change
         dir_names: "true"
 ```
 
+Each matching configuration is only emitted once, even if multiple entries in `--changed-dirs` fall within the same configuration's directory (for example, separate files changed in two different submodules of the same root module). This avoids generating duplicate matrix jobs for the same `pantalon.yaml`.
+
 ### Path Glob Filtering
 
 Pantalon can filter configurations by directory path using [doublestar](https://github.com/bmatcuk/doublestar) glob patterns. Pass `--path-glob` one or more times; a configuration is included if its directory matches **any** of the supplied patterns (OR logic).
