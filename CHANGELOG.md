@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/kallangerard/pantalon/compare/v0.2.1...v0.2.2) (2026-06-10)
+
+
+### Bug Fixes
+
+* dedupe ChangedFiles output to avoid duplicate matrix jobs ([#78](https://github.com/kallangerard/pantalon/issues/78)) ([cc3614e](https://github.com/kallangerard/pantalon/commit/cc3614ee80a6651bed92bc847237f439c158efb3))
+
 ## [0.2.1](https://github.com/kallangerard/pantalon/compare/v0.2.0...v0.2.1) (2026-06-06)
 
 
