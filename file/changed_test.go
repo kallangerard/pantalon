@@ -229,6 +229,49 @@ func TestChangedDirs_Mixed(t *testing.T) {
 	assert.Equal(t, expectedFilteredCfgs, filteredCfgs)
 }
 
+// If multiple changed directories fall within the same Pantalon configuration,
+// that configuration must only be returned once. Otherwise the same
+// pantalon.yaml is emitted multiple times, producing duplicate matrix jobs.
+func TestChangedDirs_MultipleChangedDirsWithinSameConfig(t *testing.T) {
+
+	cfgs := []api.TerraformConfiguration{
+		{
+			Metadata: api.Metadata{Name: "item1"},
+			Path:     "a/b/1/pantalon.yaml",
+		},
+	}
+
+	expectedFilteredCfgs := []api.ConfigurationItem{
+		{
+			Name: "item1",
+			Path: "a/b/1/pantalon.yaml",
+			Dir:  "a/b/1",
+		},
+	}
+
+	// Two files changed in different subdirectories of the same Pantalon
+	// configuration (e.g. two separate modules under a/b/1) result in two
+	// entries in changed-dirs that both match a/b/1.
+	changedFilesJson := []byte(`["a/b/1/modules/foo", "a/b/1/modules/bar"]`)
+
+	items, err := api.MarshalItems(cfgs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changedDirs, err := api.UnmarshalChangedFileJson(changedFilesJson)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	filteredCfgs, err := ChangedFiles(items, changedDirs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, expectedFilteredCfgs, filteredCfgs)
+}
+
 // If a directory changed is nested inside a Pantalon directory, the pantalon directory should be returned
 func TestChangedDirs_ChangedDirInsidePantalonCfg(t *testing.T) {
 

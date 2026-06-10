@@ -14,6 +14,7 @@ func ChangedFiles(allItems []api.ConfigurationItem, changedDirs []string) ([]api
 		for _, dir := range changedDirs {
 			if dir == "." || strings.HasPrefix(dir, cfg.Dir) || strings.HasPrefix(cfg.Dir, dir) {
 				filteredCfgs = append(filteredCfgs, cfg)
+				break
 			}
 		}
 	}
