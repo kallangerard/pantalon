@@ -43,6 +43,12 @@ The filename must strictly be `pantalon.yaml`. `pantalon.yml` or `pantalon.json`
 
 Pantalon can list the configurations within a repository.
 
+The search descends from the current directory and stops at the first
+`pantalon.yaml` on each branch, since that directory is the root module and
+everything below it belongs to it. `.git` and `.terraform` directories are not
+searched: they hold no root modules of their own, and `.terraform` may contain
+cached copies of modules from elsewhere.
+
 The following command will list all configurations within the current directory:
 
 ```shell

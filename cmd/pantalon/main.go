@@ -118,7 +118,7 @@ func outputJson(configurations []api.ConfigurationItem) {
 	if err != nil {
 		log.Fatalf("Error marshaling json: %v", err)
 	}
-	fmt.Println(string(data))
+	write(data)
 }
 
 func outputYaml(configurations []api.ConfigurationItem) {
@@ -126,5 +126,13 @@ func outputYaml(configurations []api.ConfigurationItem) {
 	if err != nil {
 		log.Fatalf("Error marshaling yaml: %v", err)
 	}
-	fmt.Println(string(data))
+	write(data)
+}
+
+// write emits the marshaled document followed by a newline in a single write,
+// without copying the whole payload into a string first.
+func write(data []byte) {
+	if _, err := os.Stdout.Write(append(data, '\n')); err != nil {
+		log.Fatalf("Error writing output: %v", err)
+	}
 }
