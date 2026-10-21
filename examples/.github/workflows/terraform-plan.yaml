@@ -26,6 +26,8 @@ jobs:
         uses: tj-actions/changed-files@v45
         with:
           dir_names: "true"
+          json: "true"
+          escape_json: "false"
 
       - name: Install Pantalon
         run: |

@@ -22,8 +22,9 @@ func ChangedFiles(allItems []api.ConfigurationItem, changedDirs []string) ([]api
 	return filteredCfgs, nil
 }
 
-// isWithin reports whether dir is parent or a descendant of it, comparing
-// whole path segments so "a/b-2" is not treated as being within "a/b".
+// isWithin reports whether dir equals parent or is a descendant of it,
+// comparing whole path segments so "a/b-2" is not treated as being within
+// "a/b". Both paths must be clean and slash-separated.
 func isWithin(dir, parent string) bool {
 	return parent == "." || dir == parent || strings.HasPrefix(dir, parent+"/")
 }

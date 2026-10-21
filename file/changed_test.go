@@ -327,6 +327,10 @@ func TestChangedDirs_SegmentBoundaries(t *testing.T) {
 		{"config inside changed dir", "a/dev/pantalon.yaml", "a", true},
 		{"root config", "pantalon.yaml", "a/dev", true},
 		{"root changed dir", "a/dev/pantalon.yaml", ".", true},
+		{"trailing slash on parent", "a/dev/pantalon.yaml", "a/", true},
+		{"trailing slash on exact", "a/dev/pantalon.yaml", "a/dev/", true},
+		{"dot slash prefix", "a/dev/pantalon.yaml", "./a/dev", true},
+		{"empty changed dir", "a/dev/pantalon.yaml", "", true},
 	}
 
 	for _, tt := range tests {
@@ -338,7 +342,12 @@ func TestChangedDirs_SegmentBoundaries(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			filteredCfgs, err := ChangedFiles(items, []string{tt.changedDir})
+			changedDirs, err := api.UnmarshalChangedFileJson([]byte(`["` + tt.changedDir + `"]`))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			filteredCfgs, err := ChangedFiles(items, changedDirs)
 			if err != nil {
 				t.Fatal(err)
 			}
