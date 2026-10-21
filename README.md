@@ -33,9 +33,14 @@ apiVersion: pantalon.kallan.dev/v1alpha1
 kind: TerraformConfiguration
 metadata:
   name: my-configuration
+  labels:
+    environment: prod
+    team: platform
 ```
 
 The `metadata.name` field is used to identify the configuration. This should be unique within the repository, and must be a valid DNS label (i.e. `kebab-case`). This name will be cast to lowercase.
+
+The optional `metadata.labels` field is a map of key/value pairs used to select configurations, following [Kubernetes label syntax](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set): keys have an optional DNS-subdomain prefix and `/` followed by a name of up to 63 characters, and values are empty or up to 63 characters of alphanumerics, `-`, `_` and `.`. Labels are included in the output as `labels`.
 
 The filename must strictly be `pantalon.yaml`. `pantalon.yml` or `pantalon.json` is not supported.
 
@@ -126,46 +131,73 @@ pantalon --output-format=yaml
 - name: compute-dev
   path: terraform/compute/environments/dev/pantalon.yaml
   dir: terraform/compute/environments/dev
+  labels:
+    component: compute
+    environment: dev
   context:
     gcp-service-account: infrastructure@pantalon-dev.iam.gserviceaccount.com
 - name: compute-prod
   path: terraform/compute/environments/prod/pantalon.yaml
   dir: terraform/compute/environments/prod
+  labels:
+    component: compute
+    environment: prod
   context:
     gcp-service-account: infrastructure@pantalon-prod.iam.gserviceaccount.com
 - name: compute-qa
   path: terraform/compute/environments/qa/pantalon.yaml
   dir: terraform/compute/environments/qa
+  labels:
+    component: compute
+    environment: qa
   context:
     gcp-service-account: infrastructure@pantalon-qa.iam.gserviceaccount.com
 - name: data-dev
   path: terraform/data/environments/dev/pantalon.yaml
   dir: terraform/data/environments/dev
+  labels:
+    component: data
+    environment: dev
   context:
     gcp-service-account: infrastructure@pantalon-dev.iam.gserviceaccount.com
 - name: data-prod
   path: terraform/data/environments/prod/pantalon.yaml
   dir: terraform/data/environments/prod
+  labels:
+    component: data
+    environment: prod
   context:
     gcp-service-account: infrastructure@pantalon-prod.iam.gserviceaccount.com
 - name: data-qa
   path: terraform/data/environments/qa/pantalon.yaml
   dir: terraform/data/environments/qa
+  labels:
+    component: data
+    environment: qa
   context:
     gcp-service-account: infrastructure@pantalon-qa.iam.gserviceaccount.com
 - name: lbl-dev
   path: terraform/load-balancer/environments/dev/pantalon.yaml
   dir: terraform/load-balancer/environments/dev
+  labels:
+    component: load-balancer
+    environment: dev
   context:
     gcp-service-account: infrastructure@pantalon-dev.iam.gserviceaccount.com
 - name: lbl-prod
   path: terraform/load-balancer/environments/prod/pantalon.yaml
   dir: terraform/load-balancer/environments/prod
+  labels:
+    component: load-balancer
+    environment: prod
   context:
     gcp-service-account: infrastructure@pantalon-prod.iam.gserviceaccount.com
 - name: lbl-qa
   path: terraform/load-balancer/environments/qa/pantalon.yaml
   dir: terraform/load-balancer/environments/qa
+  labels:
+    component: load-balancer
+    environment: qa
   context:
     gcp-service-account: infrastructure@pantalon-qa.iam.gserviceaccount.com
 ```
@@ -203,16 +235,25 @@ pantalon --output-format=yaml --path-glob='terraform/compute/**'
 - name: compute-dev
   path: terraform/compute/environments/dev/pantalon.yaml
   dir: terraform/compute/environments/dev
+  labels:
+    component: compute
+    environment: dev
   context:
     gcp-service-account: infrastructure@pantalon-dev.iam.gserviceaccount.com
 - name: compute-prod
   path: terraform/compute/environments/prod/pantalon.yaml
   dir: terraform/compute/environments/prod
+  labels:
+    component: compute
+    environment: prod
   context:
     gcp-service-account: infrastructure@pantalon-prod.iam.gserviceaccount.com
 - name: compute-qa
   path: terraform/compute/environments/qa/pantalon.yaml
   dir: terraform/compute/environments/qa
+  labels:
+    component: compute
+    environment: qa
   context:
     gcp-service-account: infrastructure@pantalon-qa.iam.gserviceaccount.com
 ```
@@ -246,6 +287,27 @@ pantalon --output-format=yaml \
 This returns only changed configurations that also match the glob — in this case, just `compute-dev`.
 
 See the [path glob example](examples/.github/workflows/terraform-plan-prod.yaml) for a GitHub Actions workflow that uses `--path-glob` to target production environments.
+
+### Label Selectors
+
+Pantalon can filter configurations by label using `--selector` (or `-l`), with the same syntax as `kubectl -l`:
+
+```shell
+pantalon --output-format=yaml -l 'environment=prod,component in (compute,data)'
+```
+
+| Selector | Matches |
+|---|---|
+| `environment=prod`, `environment==prod` | Label equals value |
+| `environment!=prod` | Label differs from value, or is absent |
+| `environment in (dev,qa)` | Label is one of the values |
+| `environment notin (dev,qa)` | Label is none of the values, or is absent |
+| `team` | Label is present |
+| `!team` | Label is absent |
+
+Requirements are separated by commas and combined with AND. Unlike kubectl, only one `--selector` is accepted and comparison operators (`>`, `<`) are not supported.
+
+`--selector` can be combined with `--changed-dirs` and `--path-glob`; a configuration must satisfy all of the supplied filters.
 
 ### Matrix
 
@@ -286,7 +348,7 @@ See the [example](examples/.github/workflows/terraform-plan.yaml) for the full w
 ## Roadmap
 
 - [ ] Support listing dependencies of a root module within the pantalon file.
-- [ ] Allow filtering by label selectors.
+- [x] Allow filtering by label selectors.
 - [x] Allow filtering by path glob.
 - [x] Filter by the union of git files changed and directories detected
 - [ ] Support other configuration use cases other than Terraform.

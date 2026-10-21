@@ -4,6 +4,9 @@ kind: TerraformConfiguration
 
 metadata:
   name: lbl-qa
+  labels:
+    component: load-balancer
+    environment: qa
 
 context:
   gcp-service-account: infrastructure@pantalon-qa.iam.gserviceaccount.com

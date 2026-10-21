@@ -42,6 +42,8 @@ Examples:
   pantalon --changed-dirs='["terraform/compute/environments/dev"]'
   pantalon --path-glob='terraform/compute/**'
   pantalon --path-glob='terraform/compute/**' --path-glob='terraform/data/**'
+  pantalon -l 'environment=prod'
+  pantalon --selector='environment in (dev,qa),team!=data'
 `)
 	}
 }
@@ -52,6 +54,9 @@ func main() {
 	changedDirsJson := flag.String("changed-dirs", "", `JSON array of changed directories; filters output to matching configs (e.g. '["terraform/compute/environments/dev"]')`)
 	var globs pathGlobs
 	flag.Var(&globs, "path-glob", "Doublestar glob pattern to filter configurations by directory path (repeatable, OR logic)")
+	var selector string
+	flag.StringVar(&selector, "selector", "", "Label selector to filter configurations (e.g. 'environment=prod,team in (a,b),!legacy')")
+	flag.StringVar(&selector, "l", "", "Shorthand for --selector")
 	flag.Parse()
 
 	if *help {
@@ -69,7 +74,7 @@ func main() {
 		log.Fatalf("Error marshaling items: %v", err)
 	}
 
-	items, err := filterItems(unfilteredItems, *changedDirsJson, globs)
+	items, err := filterItems(unfilteredItems, *changedDirsJson, globs, selector)
 	if err != nil {
 		log.Fatalf("Error filtering items: %v", err)
 	}
@@ -84,7 +89,7 @@ func main() {
 	}
 }
 
-func filterItems(unfilteredItems []api.ConfigurationItem, changedDirsJson string, globs []string) ([]api.ConfigurationItem, error) {
+func filterItems(unfilteredItems []api.ConfigurationItem, changedDirsJson string, globs []string, selector string) ([]api.ConfigurationItem, error) {
 	var items []api.ConfigurationItem
 
 	if changedDirsJson != "" {
@@ -106,6 +111,14 @@ func filterItems(unfilteredItems []api.ConfigurationItem, changedDirsJson string
 		if err != nil {
 			return nil, fmt.Errorf("error filtering by path glob: %w", err)
 		}
+	}
+
+	if selector != "" {
+		sel, err := api.ParseSelector(selector)
+		if err != nil {
+			return nil, err
+		}
+		items = file.SelectorFilter(items, sel)
 	}
 
 	return items, nil

@@ -33,6 +33,7 @@ go build ./cmd/pantalon/
 
 - **`pantalon.yaml`** — marker file placed in each Terraform root module. Must use `apiVersion: pantalon.kallan.dev/v1alpha1` and `kind: TerraformConfiguration`.
 - **`metadata.name`** — must be a valid RFC 1123 DNS subdomain label (lowercase alphanumeric and hyphens, max 253 chars).
+- **`metadata.labels`** — optional Kubernetes-style labels (same key/value rules), emitted as `labels` and matched by `--selector`/`-l`.
 - **`context`** — arbitrary key/value map for metadata like GCP service accounts, passed through to output.
 - The tool always runs from the **repository root** via `filepath.WalkDir(".")`.
 - When `--changed-dirs` is supplied, output is filtered to configurations whose directory is a prefix of (or equal to) a changed directory.
@@ -42,5 +43,6 @@ go build ./cmd/pantalon/
 - `file.Search()` walks the filesystem looking for `pantalon.yaml` files, stopping descent into a directory once a match is found (`filepath.SkipDir`).
 - `api.MarshalItems()` converts `[]TerraformConfiguration` into the flat `[]ConfigurationItem` output struct.
 - `api.UnmarshalChangedFileJson()` parses the JSON array from `--changed-dirs`.
+- `api.ParseSelector()` parses a kubectl-style label selector (`=`, `==`, `!=`, `in`, `notin`, `key`, `!key`, comma = AND); `file.SelectorFilter()` applies it to items.
 - `file.ChangedFiles()` filters items by matching against changed directories.
 - Output is either JSON or YAML via `github.com/goccy/go-yaml`.
