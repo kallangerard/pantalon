@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/goccy/go-yaml"
 
@@ -18,6 +20,26 @@ type pathGlobs []string
 func (p *pathGlobs) String() string { return fmt.Sprintf("%v", *p) }
 func (p *pathGlobs) Set(v string) error {
 	*p = append(*p, v)
+	return nil
+}
+
+// selectorFlag implements flag.Value for --selector/-l. It rejects blank or
+// repeated values so a mis-templated CI variable cannot silently select every
+// configuration.
+type selectorFlag struct {
+	value string
+	set   bool
+}
+
+func (s *selectorFlag) String() string { return s.value }
+func (s *selectorFlag) Set(v string) error {
+	if s.set {
+		return errors.New("selector may only be given once (use commas to combine requirements)")
+	}
+	if strings.TrimSpace(v) == "" {
+		return errors.New("selector must not be empty; omit the flag to select all configurations")
+	}
+	s.value, s.set = v, true
 	return nil
 }
 
@@ -54,9 +76,9 @@ func main() {
 	changedDirsJson := flag.String("changed-dirs", "", `JSON array of changed directories; filters output to matching configs (e.g. '["terraform/compute/environments/dev"]')`)
 	var globs pathGlobs
 	flag.Var(&globs, "path-glob", "Doublestar glob pattern to filter configurations by directory path (repeatable, OR logic)")
-	var selector string
-	flag.StringVar(&selector, "selector", "", "Label selector to filter configurations (e.g. 'environment=prod,team in (a,b),!legacy')")
-	flag.StringVar(&selector, "l", "", "Shorthand for --selector")
+	var selector selectorFlag
+	flag.Var(&selector, "selector", "Label selector to filter configurations (e.g. 'environment=prod,team in (a,b),!legacy')")
+	flag.Var(&selector, "l", "Shorthand for --selector")
 	flag.Parse()
 
 	if *help {
@@ -74,7 +96,7 @@ func main() {
 		log.Fatalf("Error marshaling items: %v", err)
 	}
 
-	items, err := filterItems(unfilteredItems, *changedDirsJson, globs, selector)
+	items, err := filterItems(unfilteredItems, *changedDirsJson, globs, selector.value)
 	if err != nil {
 		log.Fatalf("Error filtering items: %v", err)
 	}

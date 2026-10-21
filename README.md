@@ -305,7 +305,11 @@ pantalon --output-format=yaml -l 'environment=prod,component in (compute,data)'
 | `team` | Label is present |
 | `!team` | Label is absent |
 
-Requirements are separated by commas and combined with AND. Unlike kubectl, only one `--selector` is accepted and comparison operators (`>`, `<`) are not supported.
+Requirements are separated by commas and combined with AND. Unlike kubectl, only one `--selector` is accepted (repeating it, or passing an empty value, is an error) and comparison operators (`>`, `<`) are not supported.
+
+> **Caution:** negative selectors (`!=`, `notin`, `!key`) also match configurations that lack the label entirely, so a typo such as `enviroment: prod` would be selected by `-l 'environment!=prod'`. For gating jobs, prefer positive selectors like `-l 'environment in (dev,qa)'`.
+
+> **Note:** quote label values in YAML (`version: "1.10"`). Unquoted scalars are converted to strings by the YAML parser, so `1.10` becomes `1.1`.
 
 `--selector` can be combined with `--changed-dirs` and `--path-glob`; a configuration must satisfy all of the supplied filters.
 

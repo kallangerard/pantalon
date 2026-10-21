@@ -95,6 +95,9 @@ func parseRequirement(s string) (requirement, error) {
 		if m[2] == "notin" {
 			op = opNotIn
 		}
+		if strings.TrimSpace(m[3]) == "" {
+			return requirement{}, fmt.Errorf("%s requires a non-empty set of values", m[2])
+		}
 		return newRequirement(m[1], op, strings.Split(m[3], ","))
 	}
 

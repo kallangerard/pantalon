@@ -3,8 +3,10 @@ package api
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"path"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/goccy/go-yaml"
@@ -77,7 +79,9 @@ func (c config) validateTerraform(cfg TerraformConfiguration) error {
 		return errors.New("invalid metadata.name")
 	}
 
-	for k, v := range cfg.Metadata.Labels {
+	keys := slices.Sorted(maps.Keys(cfg.Metadata.Labels))
+	for _, k := range keys {
+		v := cfg.Metadata.Labels[k]
 		if !isValidLabelKey(k) {
 			return fmt.Errorf("invalid metadata.labels key %q", k)
 		}

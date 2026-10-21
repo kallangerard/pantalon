@@ -64,3 +64,11 @@ func TestFilterItems_InvalidSelector(t *testing.T) {
 	_, err := filterItems(filterTestItems, "", nil, "environment in (prod")
 	assert.Error(t, err)
 }
+
+func TestSelectorFlag(t *testing.T) {
+	var f selectorFlag
+	assert.Error(t, f.Set("  "))
+	assert.NoError(t, f.Set("environment=prod"))
+	assert.Equal(t, "environment=prod", f.value)
+	assert.Error(t, f.Set("team=a"))
+}

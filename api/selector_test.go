@@ -64,6 +64,8 @@ func TestParseSelector_Invalid(t *testing.T) {
 		"env in (a",
 		"env in a)",
 		"env in a,b",
+		"env in ()",
+		"env notin ( )",
 		"bad key=1",
 		"env=bad value",
 		"env=-bad",
