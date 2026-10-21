@@ -207,7 +207,7 @@ pantalon --output-format=yaml
 Pantalon can filter configurations based on the directories changed in the git commit.
 
 ```shell
-pantalon --output-format=yaml --changed-dirs='["terraform/compute/environments/dev",terraform/data/environments/dev"]'
+pantalon --output-format=yaml --changed-dirs='["terraform/compute/environments/dev","terraform/data/environments/dev"]'
 ```
 
 The changed-dirs argument has been designed to be supplied by [tj-actions/changed-files](https://github.com/tj-actions/changed-files) using the `dir_names` option.
@@ -218,7 +218,13 @@ The changed-dirs argument has been designed to be supplied by [tj-actions/change
       uses: tj-actions/changed-files@v45
       with:
         dir_names: "true"
+        json: "true"
+        escape_json: "false"
 ```
+
+`json` makes changed-files emit a JSON array rather than a space-separated list, and `escape_json: "false"` keeps the quotes unescaped so Pantalon can parse it.
+
+Entries are normalised before matching, so `a/dev/`, `./a/dev` and `a/dev` are equivalent, and an empty entry is treated as the repository root (matching every configuration). Absolute paths and paths that leave the repository (`../`) are rejected with an error.
 
 Each matching configuration is only emitted once, even if multiple entries in `--changed-dirs` fall within the same configuration's directory (for example, separate files changed in two different submodules of the same root module). This avoids generating duplicate matrix jobs for the same `pantalon.yaml`.
 

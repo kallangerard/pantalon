@@ -309,3 +309,50 @@ func TestChangedDirs_ChangedDirInsidePantalonCfg(t *testing.T) {
 
 	assert.Equal(t, expectedFilteredCfgs, filteredCfgs)
 }
+
+// Directories that merely share a string prefix are siblings, not nested, and
+// must not match each other.
+func TestChangedDirs_SegmentBoundaries(t *testing.T) {
+	tests := []struct {
+		name       string
+		cfgPath    string
+		changedDir string
+		want       bool
+	}{
+		{"sibling with shared prefix", "a/dev/pantalon.yaml", "a/dev-2", false},
+		{"sibling config with shared prefix", "a/dev-2/pantalon.yaml", "a/dev", false},
+		{"sibling with shared prefix nested", "a/dev/pantalon.yaml", "a/dev-2/modules", false},
+		{"exact match", "a/dev/pantalon.yaml", "a/dev", true},
+		{"changed dir inside config", "a/dev/pantalon.yaml", "a/dev/modules", true},
+		{"config inside changed dir", "a/dev/pantalon.yaml", "a", true},
+		{"root config", "pantalon.yaml", "a/dev", true},
+		{"root changed dir", "a/dev/pantalon.yaml", ".", true},
+		{"trailing slash on parent", "a/dev/pantalon.yaml", "a/", true},
+		{"trailing slash on exact", "a/dev/pantalon.yaml", "a/dev/", true},
+		{"dot slash prefix", "a/dev/pantalon.yaml", "./a/dev", true},
+		{"empty changed dir", "a/dev/pantalon.yaml", "", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			items, err := api.MarshalItems([]api.TerraformConfiguration{
+				{Metadata: api.Metadata{Name: "item1"}, Path: tt.cfgPath},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			changedDirs, err := api.UnmarshalChangedFileJson([]byte(`["` + tt.changedDir + `"]`))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			filteredCfgs, err := ChangedFiles(items, changedDirs)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			assert.Equal(t, tt.want, len(filteredCfgs) == 1)
+		})
+	}
+}
