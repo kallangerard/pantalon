@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/goccy/go-yaml"
 
@@ -18,6 +20,26 @@ type pathGlobs []string
 func (p *pathGlobs) String() string { return fmt.Sprintf("%v", *p) }
 func (p *pathGlobs) Set(v string) error {
 	*p = append(*p, v)
+	return nil
+}
+
+// selectorFlag implements flag.Value for --selector/-l. It rejects blank or
+// repeated values so a mis-templated CI variable cannot silently select every
+// configuration.
+type selectorFlag struct {
+	value string
+	set   bool
+}
+
+func (s *selectorFlag) String() string { return s.value }
+func (s *selectorFlag) Set(v string) error {
+	if s.set {
+		return errors.New("selector may only be given once (use commas to combine requirements)")
+	}
+	if strings.TrimSpace(v) == "" {
+		return errors.New("selector must not be empty; omit the flag to select all configurations")
+	}
+	s.value, s.set = v, true
 	return nil
 }
 
@@ -42,6 +64,8 @@ Examples:
   pantalon --changed-dirs='["terraform/compute/environments/dev"]'
   pantalon --path-glob='terraform/compute/**'
   pantalon --path-glob='terraform/compute/**' --path-glob='terraform/data/**'
+  pantalon -l 'environment=prod'
+  pantalon --selector='environment in (dev,qa),team!=data'
 `)
 	}
 }
@@ -52,6 +76,9 @@ func main() {
 	changedDirsJson := flag.String("changed-dirs", "", `JSON array of changed directories; filters output to matching configs (e.g. '["terraform/compute/environments/dev"]')`)
 	var globs pathGlobs
 	flag.Var(&globs, "path-glob", "Doublestar glob pattern to filter configurations by directory path (repeatable, OR logic)")
+	var selector selectorFlag
+	flag.Var(&selector, "selector", "Label selector to filter configurations (e.g. 'environment=prod,team in (a,b),!legacy')")
+	flag.Var(&selector, "l", "Shorthand for --selector")
 	flag.Parse()
 
 	if *help {
@@ -69,7 +96,7 @@ func main() {
 		log.Fatalf("Error marshaling items: %v", err)
 	}
 
-	items, err := filterItems(unfilteredItems, *changedDirsJson, globs)
+	items, err := filterItems(unfilteredItems, *changedDirsJson, globs, selector.value)
 	if err != nil {
 		log.Fatalf("Error filtering items: %v", err)
 	}
@@ -84,7 +111,7 @@ func main() {
 	}
 }
 
-func filterItems(unfilteredItems []api.ConfigurationItem, changedDirsJson string, globs []string) ([]api.ConfigurationItem, error) {
+func filterItems(unfilteredItems []api.ConfigurationItem, changedDirsJson string, globs []string, selector string) ([]api.ConfigurationItem, error) {
 	var items []api.ConfigurationItem
 
 	if changedDirsJson != "" {
@@ -106,6 +133,14 @@ func filterItems(unfilteredItems []api.ConfigurationItem, changedDirsJson string
 		if err != nil {
 			return nil, fmt.Errorf("error filtering by path glob: %w", err)
 		}
+	}
+
+	if selector != "" {
+		sel, err := api.ParseSelector(selector)
+		if err != nil {
+			return nil, err
+		}
+		items = file.SelectorFilter(items, sel)
 	}
 
 	return items, nil

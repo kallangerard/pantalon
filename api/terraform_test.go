@@ -186,3 +186,41 @@ func TestMarshalItems(t *testing.T) {
 		})
 	}
 }
+
+func TestUnmarshalTerraformConfiguration_WithLabels(t *testing.T) {
+	yamlDoc := `
+---
+apiVersion: pantalon.kallan.dev/v1alpha1
+kind: TerraformConfiguration
+metadata:
+  name: hello-world
+  labels:
+    environment: prod
+    example.com/tier: "1"
+`
+	tfCfg, err := config{}.Unmarshal([]byte(yamlDoc))
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]string{"environment": "prod", "example.com/tier": "1"}, tfCfg.Metadata.Labels)
+}
+
+func TestUnmarshalTerraformConfiguration_InvalidLabels(t *testing.T) {
+	for name, labels := range map[string]string{
+		"key":   "bad key: prod",
+		"value": "environment: bad value",
+	} {
+		t.Run(name, func(t *testing.T) {
+			yamlDoc := minimalYamlDoc + "  labels:\n    " + labels + "\n"
+			_, err := config{}.Unmarshal([]byte(yamlDoc))
+			assert.Error(t, err)
+		})
+	}
+}
+
+func TestMarshalItems_CarriesLabels(t *testing.T) {
+	items, err := MarshalItems([]TerraformConfiguration{{
+		Metadata: Metadata{Name: "a", Labels: map[string]string{"env": "dev"}},
+		Path:     "a/pantalon.yaml",
+	}})
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]string{"env": "dev"}, items[0].Labels)
+}

@@ -4,6 +4,9 @@ kind: TerraformConfiguration
 
 metadata:
   name: compute-qa
+  labels:
+    component: compute
+    environment: qa
 
 context:
   gcp-service-account: infrastructure@pantalon-qa.iam.gserviceaccount.com

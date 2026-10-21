@@ -4,6 +4,9 @@ kind: TerraformConfiguration
 
 metadata:
   name: lbl-prod
+  labels:
+    component: load-balancer
+    environment: prod
 
 context:
   gcp-service-account: infrastructure@pantalon-prod.iam.gserviceaccount.com

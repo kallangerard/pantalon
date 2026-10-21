@@ -4,6 +4,9 @@ kind: TerraformConfiguration
 
 metadata:
   name: data-dev
+  labels:
+    component: data
+    environment: dev
 
 context:
   gcp-service-account: infrastructure@pantalon-dev.iam.gserviceaccount.com
