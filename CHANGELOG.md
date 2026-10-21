@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/kallangerard/pantalon/compare/v0.2.2...v0.3.0) (2026-10-21)
+
+
+### Features
+
+* filter configurations by kubectl-style label selectors ([#95](https://github.com/kallangerard/pantalon/issues/95)) ([1a970e7](https://github.com/kallangerard/pantalon/commit/1a970e7a01b54045b9f795d4b689c08aa66ef792))
+
 ## [0.2.2](https://github.com/kallangerard/pantalon/compare/v0.2.1...v0.2.2) (2026-06-10)
 
 
