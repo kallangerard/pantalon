@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/kallangerard/pantalon/compare/v0.3.0...v0.3.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* match changed dirs on whole path segments and normalise input ([#97](https://github.com/kallangerard/pantalon/issues/97)) ([60cd6e6](https://github.com/kallangerard/pantalon/commit/60cd6e6423084d91ec0bc403b6399343e3e90dcb))
+
 ## [0.3.0](https://github.com/kallangerard/pantalon/compare/v0.2.2...v0.3.0) (2026-10-21)
 
 
