@@ -3,6 +3,7 @@ package api
 import (
 	"testing"
 
+	"github.com/goccy/go-yaml"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -223,4 +224,90 @@ func TestMarshalItems_CarriesLabels(t *testing.T) {
 	}})
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]string{"env": "dev"}, items[0].Labels)
+}
+
+func TestUnmarshalTerraformConfiguration_WithDependencies(t *testing.T) {
+	yamlDoc := minimalYamlDoc + `dependencies:
+  paths:
+    - terraform/compute/modules/**
+    - "!terraform/compute/modules/*/v1"
+    - terraform/shared/providers
+`
+	tfCfg, err := config{}.Unmarshal([]byte(yamlDoc))
+	assert.NoError(t, err)
+	assert.Equal(t, []string{
+		"terraform/compute/modules/**",
+		"!terraform/compute/modules/*/v1",
+		"terraform/shared/providers",
+	}, tfCfg.Dependencies.Paths)
+}
+
+func TestUnmarshalTerraformConfiguration_InvalidDependencies(t *testing.T) {
+	for name, paths := range map[string]string{
+		"first negated":  `["!a/**"]`,
+		"empty":          `["a", ""]`,
+		"empty negation": `["a", "!"]`,
+		"absolute":       `["/a/b"]`,
+		"parent dir":     `["../a"]`,
+		"nested parent":  `["a/../../b"]`,
+		"negated parent": `["a", "!../b"]`,
+		"malformed glob": `["a/[b"]`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			yamlDoc := minimalYamlDoc + "dependencies:\n  paths: " + paths + "\n"
+			_, err := config{}.Unmarshal([]byte(yamlDoc))
+			assert.ErrorContains(t, err, "invalid dependencies.paths")
+		})
+	}
+}
+
+func TestMarshalItems_CarriesDependencies(t *testing.T) {
+	items, err := MarshalItems([]TerraformConfiguration{
+		{
+			Metadata:     Metadata{Name: "a"},
+			Dependencies: Dependencies{Paths: []string{"modules/**"}},
+			Path:         "a/pantalon.yaml",
+		},
+		{
+			Metadata: Metadata{Name: "b"},
+			Path:     "b/pantalon.yaml",
+		},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, &Dependencies{Paths: []string{"modules/**"}}, items[0].Dependencies)
+	assert.Nil(t, items[1].Dependencies)
+}
+
+// Configurations without dependencies must produce the same output as before
+// dependencies existed.
+func TestMarshalItems_DependenciesOutput(t *testing.T) {
+	items, err := MarshalItems([]TerraformConfiguration{
+		{
+			Metadata:     Metadata{Name: "a"},
+			Dependencies: Dependencies{Paths: []string{"modules/**"}},
+			Path:         "a/pantalon.yaml",
+		},
+		{
+			Metadata: Metadata{Name: "b"},
+			Path:     "b/pantalon.yaml",
+		},
+	})
+	assert.NoError(t, err)
+
+	out, err := yaml.Marshal(items)
+	assert.NoError(t, err)
+	assert.Equal(t, `- name: a
+  path: a/pantalon.yaml
+  dir: a
+  labels: {}
+  dependencies:
+    paths:
+    - modules/**
+  context: {}
+- name: b
+  path: b/pantalon.yaml
+  dir: b
+  labels: {}
+  context: {}
+`, string(out))
 }

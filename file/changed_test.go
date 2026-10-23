@@ -356,3 +356,58 @@ func TestChangedDirs_SegmentBoundaries(t *testing.T) {
 		})
 	}
 }
+
+func TestChangedDirs_Dependencies(t *testing.T) {
+	tests := []struct {
+		name       string
+		deps       []string
+		changedDir string
+		want       bool
+	}{
+		{"plain path exact", []string{"modules/net"}, "modules/net", true},
+		{"plain path descendant", []string{"modules/net"}, "modules/net/v2", true},
+		{"plain path sibling with shared prefix", []string{"modules/net"}, "modules/net-2", false},
+		{"plain path parent changed", []string{"modules/net"}, "modules", false},
+		{"double star", []string{"modules/**"}, "modules/net/v2", true},
+		{"double star matches base dir", []string{"modules/**"}, "modules", true},
+		{"single star segment", []string{"modules/*/v2"}, "modules/net/v2", true},
+		{"single star segment descendant", []string{"modules/*/v2"}, "modules/net/v2/sub", true},
+		{"single star segment other version", []string{"modules/*/v2"}, "modules/net/v1", false},
+		{"trailing slash pattern", []string{"modules/net/"}, "modules/net", true},
+		{"negation excludes", []string{"modules/**", "!modules/*/v1"}, "modules/net/v1", false},
+		{"negation excludes descendant", []string{"modules/**", "!modules/*/v1"}, "modules/net/v1/sub", false},
+		{"negation leaves others", []string{"modules/**", "!modules/*/v1"}, "modules/net/v2", true},
+		{"last match wins re-include", []string{"modules/**", "!modules/*/v1", "modules/net/v1"}, "modules/net/v1", true},
+		{"unrelated", []string{"modules/**"}, "other", false},
+		{"no dependencies", nil, "modules/net", false},
+		// Negations only apply to dependencies, never to the configuration's own directory.
+		{"negation does not exclude own dir", []string{"modules/**", "!env/**"}, "env/dev", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			items, err := api.MarshalItems([]api.TerraformConfiguration{
+				{
+					Metadata:     api.Metadata{Name: "item1"},
+					Dependencies: api.Dependencies{Paths: tt.deps},
+					Path:         "env/dev/pantalon.yaml",
+				},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			changedDirs, err := api.UnmarshalChangedFileJson([]byte(`["` + tt.changedDir + `"]`))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			filteredCfgs, err := ChangedFiles(items, changedDirs)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			assert.Equal(t, tt.want, len(filteredCfgs) == 1)
+		})
+	}
+}

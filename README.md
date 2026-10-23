@@ -134,6 +134,9 @@ pantalon --output-format=yaml
   labels:
     component: compute
     environment: dev
+  dependencies:
+    paths:
+    - terraform/compute/modules/**
   context:
     gcp-service-account: infrastructure@pantalon-dev.iam.gserviceaccount.com
 - name: compute-prod
@@ -142,6 +145,10 @@ pantalon --output-format=yaml
   labels:
     component: compute
     environment: prod
+  dependencies:
+    paths:
+    - terraform/compute/modules/**
+    - "!terraform/compute/modules/*/v2"
   context:
     gcp-service-account: infrastructure@pantalon-prod.iam.gserviceaccount.com
 - name: compute-qa
@@ -150,6 +157,9 @@ pantalon --output-format=yaml
   labels:
     component: compute
     environment: qa
+  dependencies:
+    paths:
+    - terraform/compute/modules/**
   context:
     gcp-service-account: infrastructure@pantalon-qa.iam.gserviceaccount.com
 - name: data-dev
@@ -228,6 +238,55 @@ Entries are normalised before matching, so `a/dev/`, `./a/dev` and `a/dev` are e
 
 Each matching configuration is only emitted once, even if multiple entries in `--changed-dirs` fall within the same configuration's directory (for example, separate files changed in two different submodules of the same root module). This avoids generating duplicate matrix jobs for the same `pantalon.yaml`.
 
+### Dependencies
+
+A configuration often depends on directories outside its own, such as shared child modules. List them under `dependencies.paths` so that changes there also select the configuration when using `--changed-dirs`:
+
+```yaml
+apiVersion: pantalon.kallan.dev/v1alpha1
+kind: TerraformConfiguration
+metadata:
+  name: compute-prod
+dependencies:
+  paths:
+    - terraform/compute/modules/**
+    # prod has not been upgraded to v2 modules yet
+    - "!terraform/compute/modules/*/v2"
+    - terraform/shared/providers
+```
+
+Patterns follow the style of GitHub Actions [`on.<event>.paths`](https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#onpushpull_requestpull_request_targetpathspaths-ignore) filters, using [doublestar](https://github.com/bmatcuk/doublestar) globs:
+
+- Patterns are relative to the repository root, like `dir` and `--changed-dirs`. Absolute paths and `..` are rejected.
+- A pattern matches a directory and everything below it, so `terraform/shared/providers`, `terraform/shared/providers/**` and `terraform/compute/modules/*/v2` all match changes in subdirectories too.
+- A leading `!` excludes directories matched by earlier patterns. Patterns are evaluated in order and the last match wins, so the first pattern cannot be negated. Quote negated patterns, as `!` is special in YAML.
+- Exclusions only apply to dependencies. Changes within the configuration's own directory always select it.
+- `--changed-dirs` contains directories, not files, so file patterns such as `**/*.tf` will not match them.
+
+Changing `terraform/compute/modules/template/v2` would then select every compute configuration except `compute-prod`:
+
+```shell
+pantalon --output-format=yaml --changed-dirs='["terraform/compute/modules/template/v2"]'
+```
+
+```yaml
+- name: compute-dev
+  path: terraform/compute/environments/dev/pantalon.yaml
+  dir: terraform/compute/environments/dev
+  labels:
+    component: compute
+    environment: dev
+  dependencies:
+    paths:
+    - terraform/compute/modules/**
+  context:
+    gcp-service-account: infrastructure@pantalon-dev.iam.gserviceaccount.com
+- name: compute-qa
+  ...
+```
+
+`dependencies` is included in the output when set, and omitted otherwise. `--path-glob` and `--selector` match only the configuration's own `dir` and labels; dependencies affect `--changed-dirs` only.
+
 ### Path Glob Filtering
 
 Pantalon can filter configurations by directory path using [doublestar](https://github.com/bmatcuk/doublestar) glob patterns. Pass `--path-glob` one or more times; a configuration is included if its directory matches **any** of the supplied patterns (OR logic).
@@ -244,6 +303,9 @@ pantalon --output-format=yaml --path-glob='terraform/compute/**'
   labels:
     component: compute
     environment: dev
+  dependencies:
+    paths:
+    - terraform/compute/modules/**
   context:
     gcp-service-account: infrastructure@pantalon-dev.iam.gserviceaccount.com
 - name: compute-prod
@@ -252,6 +314,10 @@ pantalon --output-format=yaml --path-glob='terraform/compute/**'
   labels:
     component: compute
     environment: prod
+  dependencies:
+    paths:
+    - terraform/compute/modules/**
+    - "!terraform/compute/modules/*/v2"
   context:
     gcp-service-account: infrastructure@pantalon-prod.iam.gserviceaccount.com
 - name: compute-qa
@@ -260,6 +326,9 @@ pantalon --output-format=yaml --path-glob='terraform/compute/**'
   labels:
     component: compute
     environment: qa
+  dependencies:
+    paths:
+    - terraform/compute/modules/**
   context:
     gcp-service-account: infrastructure@pantalon-qa.iam.gserviceaccount.com
 ```
@@ -357,7 +426,7 @@ See the [example](examples/.github/workflows/terraform-plan.yaml) for the full w
 
 ## Roadmap
 
-- [ ] Support listing dependencies of a root module within the pantalon file.
+- [x] Support listing dependencies of a root module within the pantalon file.
 - [x] Allow filtering by label selectors.
 - [x] Allow filtering by path glob.
 - [x] Filter by the union of git files changed and directories detected
