@@ -8,5 +8,9 @@ metadata:
     component: compute
     environment: qa
 
+dependencies:
+  paths:
+    - terraform/compute/modules/**
+
 context:
   gcp-service-account: infrastructure@pantalon-qa.iam.gserviceaccount.com

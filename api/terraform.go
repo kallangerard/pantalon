@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/bmatcuk/doublestar/v4"
 	"github.com/goccy/go-yaml"
 )
 
@@ -26,19 +27,31 @@ type config struct {
 }
 
 type TerraformConfiguration struct {
-	ApiVersion string            `yaml:"apiVersion"`
-	Kind       string            `yaml:"kind"`
-	Metadata   Metadata          `yaml:"metadata"`
-	Context    map[string]string `yaml:"context,omitempty"`
-	Path       string
+	ApiVersion   string            `yaml:"apiVersion"`
+	Kind         string            `yaml:"kind"`
+	Metadata     Metadata          `yaml:"metadata"`
+	Dependencies Dependencies      `yaml:"dependencies,omitempty"`
+	Context      map[string]string `yaml:"context,omitempty"`
+	Path         string
 }
 
 type ConfigurationItem struct {
-	Name    string            `yaml:"name"`
-	Path    string            `yaml:"path"`
-	Dir     string            `yaml:"dir"`
-	Labels  map[string]string `yaml:"labels"`
-	Context map[string]string `yaml:"context"`
+	Name         string            `yaml:"name"`
+	Path         string            `yaml:"path"`
+	Dir          string            `yaml:"dir"`
+	Labels       map[string]string `yaml:"labels"`
+	Dependencies *Dependencies     `yaml:"dependencies,omitempty"`
+	Context      map[string]string `yaml:"context"`
+}
+
+// Dependencies lists what a configuration depends on outside its own
+// directory, so that changes there also select it.
+type Dependencies struct {
+	// Paths are doublestar glob patterns relative to the repository root, in
+	// the style of GitHub Actions on.<event>.paths. A pattern matches a
+	// directory and everything below it. A leading "!" excludes directories
+	// matched by earlier patterns; the last matching pattern wins.
+	Paths []string `yaml:"paths,omitempty"`
 }
 
 type Metadata struct {
@@ -89,6 +102,29 @@ func (c config) validateTerraform(cfg TerraformConfiguration) error {
 			return fmt.Errorf("invalid metadata.labels value %q for key %q", v, k)
 		}
 	}
+	for i, p := range cfg.Dependencies.Paths {
+		if err := validateDependencyPath(p, i == 0); err != nil {
+			return fmt.Errorf("invalid dependencies.paths[%d] %q: %w", i, p, err)
+		}
+	}
+
+	return nil
+}
+
+func validateDependencyPath(p string, first bool) error {
+	pattern, negated := strings.CutPrefix(p, "!")
+	if negated && first {
+		return errors.New("first pattern cannot be negated, as there is nothing to exclude")
+	}
+	if pattern == "" {
+		return errors.New("pattern is empty")
+	}
+	if path.IsAbs(pattern) || slices.Contains(strings.Split(pattern, "/"), "..") {
+		return errors.New("pattern must be relative to the repository root")
+	}
+	if !doublestar.ValidatePattern(pattern) {
+		return errors.New("pattern is not a valid glob")
+	}
 	return nil
 }
 
@@ -103,6 +139,9 @@ func MarshalItems(cfgs []TerraformConfiguration) ([]ConfigurationItem, error) {
 			Context: cfg.Context,
 			Path:    cfg.Path,
 			Dir:     path.Dir(cfg.Path),
+		}
+		if len(cfg.Dependencies.Paths) > 0 {
+			item.Dependencies = &cfg.Dependencies
 		}
 		items = append(items, item)
 	}
