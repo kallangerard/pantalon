@@ -1,19 +1,53 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
-  "nix": { "enabled": true },
-  "lockFileMaintenance": { "enabled": true },
+  "extends": [
+    "config:recommended"
+  ],
+  "nix": {
+    "enabled": true
+  },
+  "lockFileMaintenance": {
+    "enabled": true
+  },
   "semanticCommits": "enabled",
   "semanticCommitType": "ci",
   "packageRules": [
     {
       "description": "Only Go dependencies reach the binary; chore is a visible release-please section, ci is hidden.",
-      "matchManagers": ["gomod"],
+      "matchManagers": [
+        "gomod"
+      ],
       "semanticCommitType": "chore"
     },
     {
-      "matchDepNames": ["go"],
-      "matchUpdateTypes": ["patch"],
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchUpdateTypes": [
+        "lockFileMaintenance"
+      ],
+      "semanticCommitType": "chore",
+      "branchTopic": "go-lock-file-maintenance",
+      "commitMessageTopic": "Go lock file"
+    },
+    {
+      "matchManagers": [
+        "nix"
+      ],
+      "matchUpdateTypes": [
+        "lockFileMaintenance"
+      ],
+      "semanticCommitType": "ci",
+      "branchTopic": "nix-lock-file-maintenance",
+      "commitMessageTopic": "flake.lock"
+    },
+    {
+      "matchDepNames": [
+        "go"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
       "automerge": true
     }
   ]
