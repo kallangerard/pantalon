@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/kallangerard/pantalon/compare/v0.3.1...v0.4.0) (2026-10-27)
+
+
+### Features
+
+* select configurations by dependencies.paths ([#100](https://github.com/kallangerard/pantalon/issues/100)) ([9365878](https://github.com/kallangerard/pantalon/commit/93658786fb7e878fdc82954e48c98d1e7385d5d8))
+
 ## [0.3.1](https://github.com/kallangerard/pantalon/compare/v0.3.0...v0.3.1) (2026-10-22)
 
 
