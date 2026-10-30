@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.5.0](https://github.com/kallangerard/pantalon/compare/v0.4.0...v0.5.0) (2026-10-30)
+
+
+### Features
+
+* reject YAML anchors, aliases and merge keys in pantalon.yaml ([#110](https://github.com/kallangerard/pantalon/issues/110)) ([77adb93](https://github.com/kallangerard/pantalon/commit/77adb93d453cecda12369a0ed60301b496c1bfea)), closes [#107](https://github.com/kallangerard/pantalon/issues/107)
+
+
+### Bug Fixes
+
+* name the file in validation errors, warn on unknown fields, reject duplicate names ([#106](https://github.com/kallangerard/pantalon/issues/106)) ([bb312a9](https://github.com/kallangerard/pantalon/commit/bb312a997bc7e23b7ad3ca48cbb7332bff0e5fef)), closes [#103](https://github.com/kallangerard/pantalon/issues/103)
+
+
+### Miscellaneous
+
+* add infra and QA reviewer agents ([#109](https://github.com/kallangerard/pantalon/issues/109)) ([9f660dd](https://github.com/kallangerard/pantalon/commit/9f660dd1025a22098fb893494bf09512fae2e046))
+
 ## [0.4.0](https://github.com/kallangerard/pantalon/compare/v0.3.1...v0.4.0) (2026-10-27)
 
 
