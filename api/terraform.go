@@ -69,6 +69,10 @@ func New() config {
 func (c config) Unmarshal(yamlDoc []byte) (TerraformConfiguration, error) {
 	cfg := TerraformConfiguration{}
 
+	if err := rejectAnchors(yamlDoc); err != nil {
+		return cfg, err
+	}
+
 	err := yaml.Unmarshal(yamlDoc, &cfg)
 	if err != nil {
 		return cfg, err
@@ -80,6 +84,35 @@ func (c config) Unmarshal(yamlDoc []byte) (TerraformConfiguration, error) {
 	}
 
 	return cfg, nil
+}
+
+// rejectAnchors fails on anchors, aliases and merge keys: pantalon.yaml is
+// plain, explicit YAML.
+func rejectAnchors(yamlDoc []byte) error {
+	f, err := parser.ParseBytes(yamlDoc, 0)
+	if err != nil {
+		return nil // Unmarshal reports syntax errors
+	}
+	if len(f.Docs) == 0 {
+		return nil
+	}
+	var v anchorFinder
+	ast.Walk(&v, f.Docs[0]) // like Unmarshal, read only the first document
+	return v.err
+}
+
+type anchorFinder struct{ err error }
+
+func (v *anchorFinder) Visit(n ast.Node) ast.Visitor {
+	if v.err != nil {
+		return nil
+	}
+	switch n.(type) {
+	case *ast.AnchorNode, *ast.AliasNode, *ast.MergeKeyNode:
+		v.err = fmt.Errorf("line %d: YAML anchors, aliases and merge keys are not supported", n.GetToken().Position.Line)
+		return nil
+	}
+	return v
 }
 
 // Warning is a problem in a pantalon.yaml that doesn't stop it being read.
@@ -95,6 +128,9 @@ func Warnings(yamlDoc []byte) []Warning {
 	f, err := parser.ParseBytes(yamlDoc, 0)
 	if err != nil || len(f.Docs) == 0 || f.Docs[0].Body == nil {
 		return nil // Unmarshal reports syntax errors
+	}
+	if rejectAnchors(yamlDoc) != nil {
+		return nil // Unmarshal reports the anchor; unknown-field hints would mislead
 	}
 	return unknownFields(f.Docs[0].Body, reflect.TypeOf(TerraformConfiguration{}), "")
 }
@@ -114,8 +150,6 @@ func unknownFields(node ast.Node, t reflect.Type, prefix string) []Warning {
 		values = n.Values
 	case *ast.MappingValueNode:
 		values = []*ast.MappingValueNode{n}
-	case *ast.AnchorNode:
-		return unknownFields(n.Value, t, prefix)
 	case *ast.TagNode:
 		return unknownFields(n.Value, t, prefix)
 	}
@@ -133,9 +167,6 @@ func unknownFields(node ast.Node, t reflect.Type, prefix string) []Warning {
 	for _, v := range values {
 		tk := v.Key.GetToken()
 		key := tk.Value
-		if key == "<<" {
-			continue // YAML merge key
-		}
 		ft, ok := fields[key]
 		if !ok {
 			warnings = append(warnings, Warning{tk.Position.Line, fmt.Sprintf("unknown field %q", prefix+key)})

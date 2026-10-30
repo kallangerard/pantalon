@@ -360,3 +360,33 @@ func TestUnmarshalTerraformConfiguration_IgnoresUnknownFields(t *testing.T) {
 	_, err := config{}.Unmarshal([]byte(minimalYamlDoc + "fromTheFuture: true\n"))
 	assert.NoError(t, err)
 }
+
+func TestUnmarshalTerraformConfiguration_RejectsAnchors(t *testing.T) {
+	for name, doc := range map[string]string{
+		"anchor": minimalYamlDoc + "context:\n  a: &x 1\n",
+		"alias":  minimalYamlDoc + "context:\n  b: *x\n",
+		"merge":  minimalYamlDoc + "context:\n  <<: {a: 1}\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := config{}.Unmarshal([]byte(doc))
+			assert.ErrorContains(t, err, "line 8: YAML anchors, aliases and merge keys are not supported")
+		})
+	}
+}
+
+func TestUnmarshalTerraformConfiguration_AllowsAnchorLookalikes(t *testing.T) {
+	doc := minimalYamlDoc + `context:
+  a: "&x"
+  b: 'it *is*'
+  c: http://x?a=1&b=2
+  "<<": quoted  # &x *x << in a comment
+---
+later: &ignored 1
+`
+	_, err := config{}.Unmarshal([]byte(doc))
+	assert.NoError(t, err)
+}
+
+func TestWarnings_NoneWhenAnchored(t *testing.T) {
+	assert.Nil(t, Warnings([]byte(minimalYamlDoc+"typo: &x 1\n")))
+}

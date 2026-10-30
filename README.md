@@ -44,6 +44,8 @@ The optional `metadata.labels` field is a map of key/value pairs used to select 
 
 The filename must strictly be `pantalon.yaml`. `pantalon.yml` or `pantalon.json` is not supported.
 
+The file must be plain, explicit YAML: anchors (`&a`), aliases (`*a`) and merge keys (`<<`) are rejected with an error naming the file and line.
+
 Unknown fields produce a warning on stderr rather than an error, so older versions of pantalon can read configurations that use newer fields. Under GitHub Actions (`GITHUB_ACTIONS=true`) warnings are emitted as `::warning` annotations on the offending file and line.
 
 ### Listing Configurations
