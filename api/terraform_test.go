@@ -83,7 +83,7 @@ metadata:
 `
 	cfg := config{}
 	_, err := cfg.Unmarshal([]byte(yamlDoc))
-	assert.EqualError(t, err, "invalid metadata.name")
+	assert.ErrorContains(t, err, "invalid metadata.name")
 }
 
 func TestUnmarshalTerraformConfiguration_InvalidMetadataNameDots(t *testing.T) {
@@ -96,7 +96,21 @@ metadata:
 `
 	cfg := config{}
 	_, err := cfg.Unmarshal([]byte(yamlDoc))
-	assert.EqualError(t, err, "invalid metadata.name")
+	assert.ErrorContains(t, err, "invalid metadata.name")
+}
+
+// Names are rejected, not lowercased, so "Dev" and "dev" can't both exist.
+func TestUnmarshalTerraformConfiguration_InvalidMetadataNameUppercase(t *testing.T) {
+	yamlDoc := `
+---
+kind: TerraformConfiguration
+apiVersion: pantalon.kallan.dev/v1alpha1
+metadata:
+  name: Hello-world
+`
+	cfg := config{}
+	_, err := cfg.Unmarshal([]byte(yamlDoc))
+	assert.ErrorContains(t, err, `invalid metadata.name "Hello-world"`)
 }
 
 func TestMarshalItems(t *testing.T) {
@@ -310,4 +324,39 @@ func TestMarshalItems_DependenciesOutput(t *testing.T) {
   labels: {}
   context: {}
 `, string(out))
+}
+
+func TestWarnings(t *testing.T) {
+	for name, tc := range map[string]struct {
+		yamlDoc string
+		want    []Warning
+	}{
+		"all known fields": {minimalYamlDoc + `  labels:
+    env: dev
+dependencies:
+  paths: [a]
+context:
+  anything: goes
+`, nil},
+		"every unknown field, with its path": {minimalYamlDoc + `  lables:
+    env: dev
+dependecies:
+  paths: [a]
+`, []Warning{
+			{7, `unknown field "metadata.lables"`},
+			{9, `unknown field "dependecies"`},
+		}},
+		"path is set by pantalon, not the user": {minimalYamlDoc + `path: foo
+`, []Warning{{7, `unknown field "path"`}}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, tc.want, Warnings([]byte(tc.yamlDoc)))
+		})
+	}
+}
+
+// Older binaries must still read configs that use fields added later.
+func TestUnmarshalTerraformConfiguration_IgnoresUnknownFields(t *testing.T) {
+	_, err := config{}.Unmarshal([]byte(minimalYamlDoc + "fromTheFuture: true\n"))
+	assert.NoError(t, err)
 }

@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"maps"
 	"path"
+	"reflect"
 	"regexp"
 	"slices"
 	"strings"
 
 	"github.com/bmatcuk/doublestar/v4"
 	"github.com/goccy/go-yaml"
+	"github.com/goccy/go-yaml/ast"
+	"github.com/goccy/go-yaml/parser"
 )
 
 const (
@@ -32,7 +35,7 @@ type TerraformConfiguration struct {
 	Metadata     Metadata          `yaml:"metadata"`
 	Dependencies Dependencies      `yaml:"dependencies,omitempty"`
 	Context      map[string]string `yaml:"context,omitempty"`
-	Path         string
+	Path         string            `yaml:"-"`
 }
 
 type ConfigurationItem struct {
@@ -79,6 +82,70 @@ func (c config) Unmarshal(yamlDoc []byte) (TerraformConfiguration, error) {
 	return cfg, nil
 }
 
+// Warning is a problem in a pantalon.yaml that doesn't stop it being read.
+type Warning struct {
+	Line    int
+	Message string
+}
+
+// Warnings reports fields this version of pantalon doesn't recognise.
+// Unmarshal ignores them rather than rejecting them so that older binaries
+// can read configs using newer fields.
+func Warnings(yamlDoc []byte) []Warning {
+	f, err := parser.ParseBytes(yamlDoc, 0)
+	if err != nil || len(f.Docs) == 0 || f.Docs[0].Body == nil {
+		return nil // Unmarshal reports syntax errors
+	}
+	return unknownFields(f.Docs[0].Body, reflect.TypeOf(TerraformConfiguration{}), "")
+}
+
+// unknownFields walks node against the yaml tags of struct type t.
+func unknownFields(node ast.Node, t reflect.Type, prefix string) []Warning {
+	if t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	if t.Kind() != reflect.Struct {
+		return nil // maps such as context accept any key
+	}
+
+	var values []*ast.MappingValueNode
+	switch n := node.(type) {
+	case *ast.MappingNode:
+		values = n.Values
+	case *ast.MappingValueNode:
+		values = []*ast.MappingValueNode{n}
+	case *ast.AnchorNode:
+		return unknownFields(n.Value, t, prefix)
+	case *ast.TagNode:
+		return unknownFields(n.Value, t, prefix)
+	}
+
+	fields := make(map[string]reflect.Type)
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		name, _, _ := strings.Cut(f.Tag.Get("yaml"), ",")
+		if name != "" && name != "-" {
+			fields[name] = f.Type
+		}
+	}
+
+	var warnings []Warning
+	for _, v := range values {
+		tk := v.Key.GetToken()
+		key := tk.Value
+		if key == "<<" {
+			continue // YAML merge key
+		}
+		ft, ok := fields[key]
+		if !ok {
+			warnings = append(warnings, Warning{tk.Position.Line, fmt.Sprintf("unknown field %q", prefix+key)})
+			continue
+		}
+		warnings = append(warnings, unknownFields(v.Value, ft, prefix+key+".")...)
+	}
+	return warnings
+}
+
 func (c config) validateTerraform(cfg TerraformConfiguration) error {
 	if cfg.ApiVersion != PantalonVersion {
 		return errors.New("invalid version")
@@ -89,7 +156,7 @@ func (c config) validateTerraform(cfg TerraformConfiguration) error {
 	}
 
 	if !isValidSubdomainLabel(cfg.Metadata.Name) {
-		return errors.New("invalid metadata.name")
+		return fmt.Errorf("invalid metadata.name %q", cfg.Metadata.Name)
 	}
 
 	keys := slices.Sorted(maps.Keys(cfg.Metadata.Labels))

@@ -38,11 +38,13 @@ metadata:
     team: platform
 ```
 
-The `metadata.name` field is used to identify the configuration. This should be unique within the repository, and must be a valid DNS label (i.e. `kebab-case`). This name will be cast to lowercase.
+The `metadata.name` field is used to identify the configuration. It MUST be unique within the repository and a valid DNS label (lowercase `kebab-case`; uppercase is rejected, not converted). Pantalon fails if two configurations share a name.
 
 The optional `metadata.labels` field is a map of key/value pairs used to select configurations, following [Kubernetes label syntax](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set): keys have an optional DNS-subdomain prefix and `/` followed by a name of up to 63 characters, and values are empty or up to 63 characters of alphanumerics, `-`, `_` and `.`. Labels are included in the output as `labels`.
 
 The filename must strictly be `pantalon.yaml`. `pantalon.yml` or `pantalon.json` is not supported.
+
+Unknown fields produce a warning on stderr rather than an error, so older versions of pantalon can read configurations that use newer fields. Under GitHub Actions (`GITHUB_ACTIONS=true`) warnings are emitted as `::warning` annotations on the offending file and line.
 
 ### Listing Configurations
 

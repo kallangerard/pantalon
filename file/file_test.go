@@ -1,12 +1,16 @@
 package file
 
 import (
+	"bytes"
+	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/kallangerard/pantalon/api"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWalkDir(t *testing.T) {
@@ -192,4 +196,90 @@ func TestSearch_NoFilesFound(t *testing.T) {
 	}
 
 	assert.Empty(t, result)
+}
+
+// writeConfigs writes each path's pantalon.yaml content under a temp dir and
+// changes into it.
+func writeConfigs(t *testing.T, files map[string]string) {
+	dir := t.TempDir()
+	for p, content := range files {
+		full := filepath.Join(dir, p)
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	originalCwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(originalCwd) })
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+}
+
+const configHeader = "apiVersion: pantalon.kallan.dev/v1alpha1\nkind: TerraformConfiguration\n"
+
+func TestSearch_ErrorNamesFile(t *testing.T) {
+	writeConfigs(t, map[string]string{"a/pantalon.yaml": configHeader + "metadata:\n  name: Not_Valid\n"})
+
+	_, err := Search()
+	assert.EqualError(t, err, `a/pantalon.yaml: invalid metadata.name "Not_Valid"`)
+}
+
+func TestSearch_ValidationErrorNamesUnknownField(t *testing.T) {
+	writeConfigs(t, map[string]string{"a/pantalon.yaml": configHeader + "metadata:\n  nmae: a\n"})
+
+	_, err := Search()
+	assert.EqualError(t, err, `a/pantalon.yaml: invalid metadata.name "" (line 4: unknown field "metadata.nmae")`)
+}
+
+// captureLog returns the log output written during the test.
+func captureLog(t *testing.T) *bytes.Buffer {
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+	log.SetFlags(0)
+	t.Cleanup(func() {
+		log.SetOutput(os.Stderr)
+		log.SetFlags(log.LstdFlags)
+	})
+	return &buf
+}
+
+const typoConfig = configHeader + "metadata:\n  name: a\ndependecies:\n  paths: [b]\n"
+
+func TestSearch_UnknownFieldWarns(t *testing.T) {
+	t.Setenv("GITHUB_ACTIONS", "")
+	writeConfigs(t, map[string]string{"a/pantalon.yaml": typoConfig})
+	logs := captureLog(t)
+
+	result, err := Search()
+	require.NoError(t, err)
+
+	assert.Equal(t, "a", result[0].Metadata.Name)
+	assert.Equal(t, "warning: a/pantalon.yaml:5: unknown field \"dependecies\"\n", logs.String())
+}
+
+func TestSearch_UnknownFieldAnnotatesInGitHubActions(t *testing.T) {
+	t.Setenv("GITHUB_ACTIONS", "true")
+	writeConfigs(t, map[string]string{"a/pantalon.yaml": typoConfig})
+	logs := captureLog(t)
+
+	_, err := Search()
+	require.NoError(t, err)
+
+	assert.Equal(t, "::warning file=a/pantalon.yaml,line=5::unknown field \"dependecies\"\n", logs.String())
+}
+
+func TestSearch_DuplicateName(t *testing.T) {
+	writeConfigs(t, map[string]string{
+		"a/pantalon.yaml": configHeader + "metadata:\n  name: same\n",
+		"b/pantalon.yaml": configHeader + "metadata:\n  name: same\n",
+	})
+
+	_, err := Search()
+	assert.EqualError(t, err, `duplicate metadata.name "same" in a/pantalon.yaml and b/pantalon.yaml`)
 }
