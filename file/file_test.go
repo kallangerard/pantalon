@@ -237,6 +237,13 @@ func TestSearch_ValidationErrorNamesUnknownField(t *testing.T) {
 	assert.EqualError(t, err, `a/pantalon.yaml: invalid metadata.name "" (line 4: unknown field "metadata.nmae")`)
 }
 
+func TestSearch_AnchorErrorNamesFileAndLine(t *testing.T) {
+	writeConfigs(t, map[string]string{"a/pantalon.yaml": configHeader + "metadata:\n  name: a\nbase: &b 1\n"})
+
+	_, err := Search()
+	assert.EqualError(t, err, "a/pantalon.yaml: line 5: YAML anchors, aliases and merge keys are not supported")
+}
+
 // captureLog returns the log output written during the test.
 func captureLog(t *testing.T) *bytes.Buffer {
 	var buf bytes.Buffer
