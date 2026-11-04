@@ -67,11 +67,11 @@ func Parse(yamlDoc []byte) (TerraformConfiguration, []Warning, error) {
 
 	warnings := unknownFieldWarnings(yamlDoc)
 
-	if err := yaml.Unmarshal(yamlDoc, &cfg); err != nil {
-		return cfg, nil, err
+	err := yaml.Unmarshal(yamlDoc, &cfg)
+	if err == nil {
+		err = validateTerraform(cfg)
 	}
-
-	if err := validateTerraform(cfg); err != nil {
+	if err != nil {
 		if len(warnings) > 0 {
 			err = fmt.Errorf("%w (%s)", err, joinWarnings(warnings))
 		}

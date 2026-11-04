@@ -34,4 +34,4 @@ jobs:
           args: build --snapshot --clean --single-target --output ./dist/pantalon
       - name: Smoke test against examples
         working-directory: examples
-        run: ../dist/pantalon --output-format=yaml
+        run: ../dist/pantalon --output-format=yaml | grep -q "name:"

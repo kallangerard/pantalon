@@ -37,6 +37,9 @@ func run(args []string, stdout, stderr io.Writer) error {
 	fs.Var(&selector, "selector", "Label selector to filter configurations (e.g. 'environment=prod,team in (a,b),!legacy')")
 	fs.Var(&selector, "l", "Shorthand for --selector")
 	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil // usage already printed
+		}
 		return errUsage
 	}
 
