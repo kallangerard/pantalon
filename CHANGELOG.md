@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/kallangerard/pantalon/compare/v0.5.0...v0.5.1) (2026-11-04)
+
+
+### Miscellaneous
+
+* **deps:** update module github.com/bmatcuk/doublestar/v4 to v4.10.4 ([#112](https://github.com/kallangerard/pantalon/issues/112)) ([18498ba](https://github.com/kallangerard/pantalon/commit/18498bafa61f4194c07b1f48f913efba5a6142ff))
+
 ## [0.5.0](https://github.com/kallangerard/pantalon/compare/v0.4.0...v0.5.0) (2026-10-30)
 
 
