@@ -4,162 +4,86 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
-	"strings"
 
-	"github.com/goccy/go-yaml"
-
-	"github.com/kallangerard/pantalon/api"
-	"github.com/kallangerard/pantalon/file"
+	"github.com/kallangerard/pantalon/internal/pantalon"
 )
 
-// pathGlobs implements flag.Value for a repeatable --path-glob flag.
-type pathGlobs []string
-
-func (p *pathGlobs) String() string { return fmt.Sprintf("%v", *p) }
-func (p *pathGlobs) Set(v string) error {
-	*p = append(*p, v)
-	return nil
-}
-
-// selectorFlag implements flag.Value for --selector/-l. It rejects blank or
-// repeated values so a mis-templated CI variable cannot silently select every
-// configuration.
-type selectorFlag struct {
-	value string
-	set   bool
-}
-
-func (s *selectorFlag) String() string { return s.value }
-func (s *selectorFlag) Set(v string) error {
-	if s.set {
-		return errors.New("selector may only be given once (use commas to combine requirements)")
-	}
-	if strings.TrimSpace(v) == "" {
-		return errors.New("selector must not be empty; omit the flag to select all configurations")
-	}
-	s.value, s.set = v, true
-	return nil
-}
-
-func init() {
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, `pantalon - identify Terraform root module configurations for CI/CD pipelines
-
-Walks the repository from the current directory, finds pantalon.yaml marker
-files, and emits a machine-readable list of Terraform root modules suitable
-for use in GitHub Actions job matrices or other CI/CD tooling.
-
-Usage:
-  pantalon [flags]
-
-Flags:
-`)
-		flag.PrintDefaults()
-		fmt.Fprintf(os.Stderr, `
-Examples:
-  pantalon
-  pantalon --output-format=yaml
-  pantalon --changed-dirs='["terraform/compute/environments/dev"]'
-  pantalon --path-glob='terraform/compute/**'
-  pantalon --path-glob='terraform/compute/**' --path-glob='terraform/data/**'
-  pantalon -l 'environment=prod'
-  pantalon --selector='environment in (dev,qa),team!=data'
-`)
-	}
-}
+// errUsage means the flag package already reported the problem.
+var errUsage = errors.New("usage")
 
 func main() {
-	help := flag.Bool("help", false, "Show help")
-	outputFormat := flag.String("output-format", "json", "Output format: json or yaml")
-	changedDirsJson := flag.String("changed-dirs", "", `JSON array of changed directories; filters output to matching configs (e.g. '["terraform/compute/environments/dev"]')`)
+	switch err := run(os.Args[1:], os.Stdout, os.Stderr); {
+	case err == nil:
+	case errors.Is(err, errUsage):
+		os.Exit(2)
+	default:
+		log.Fatal(err)
+	}
+}
+
+func run(args []string, stdout, stderr io.Writer) error {
+	fs := flag.NewFlagSet("pantalon", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	fs.Usage = usage(fs)
+	help := fs.Bool("help", false, "Show help")
+	outputFormat := fs.String("output-format", "json", "Output format: json or yaml")
+	changedDirs := fs.String("changed-dirs", "", `JSON array of changed directories; filters output to matching configs (e.g. '["terraform/compute/environments/dev"]')`)
 	var globs pathGlobs
-	flag.Var(&globs, "path-glob", "Doublestar glob pattern to filter configurations by directory path (repeatable, OR logic)")
+	fs.Var(&globs, "path-glob", "Doublestar glob pattern to filter configurations by directory path (repeatable, OR logic)")
 	var selector selectorFlag
-	flag.Var(&selector, "selector", "Label selector to filter configurations (e.g. 'environment=prod,team in (a,b),!legacy')")
-	flag.Var(&selector, "l", "Shorthand for --selector")
-	flag.Parse()
+	fs.Var(&selector, "selector", "Label selector to filter configurations (e.g. 'environment=prod,team in (a,b),!legacy')")
+	fs.Var(&selector, "l", "Shorthand for --selector")
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil // usage already printed
+		}
+		return errUsage
+	}
 
 	if *help {
-		flag.Usage()
-		os.Exit(0)
+		fs.Usage()
+		return nil
 	}
 
-	configurations, err := file.Search()
+	configurations, warnings, err := pantalon.Discover(os.DirFS("."))
+	printWarnings(stderr, warnings)
 	if err != nil {
-		log.Fatalf("Error listing configurations: %v", err)
+		return wrap("Error listing configurations", err)
 	}
 
-	unfilteredItems, err := api.MarshalItems(configurations)
+	unfiltered, err := pantalon.MarshalItems(configurations)
 	if err != nil {
-		log.Fatalf("Error marshaling items: %v", err)
+		return wrap("Error marshaling items", err)
 	}
 
-	items, err := filterItems(unfilteredItems, *changedDirsJson, globs, selector.value)
+	items, err := pantalon.Filter(unfiltered, pantalon.FilterOptions{
+		ChangedDirs: *changedDirs,
+		PathGlobs:   globs,
+		Selector:    selector.value,
+	})
 	if err != nil {
-		log.Fatalf("Error filtering items: %v", err)
+		return wrap("Error filtering items", err)
 	}
 
-	switch *outputFormat {
-	case "json":
-		outputJson(items)
-	case "yaml":
-		outputYaml(items)
-	default:
-		log.Fatalf("Unsupported output format: %s", *outputFormat)
+	return pantalon.Write(stdout, items, *outputFormat)
+}
+
+// printWarnings writes warnings as GitHub Actions annotations when running
+// there, and as log lines otherwise.
+func printWarnings(w io.Writer, warnings []pantalon.Warning) {
+	logger := log.New(w, "", log.LstdFlags)
+	for _, wn := range warnings {
+		if os.Getenv("GITHUB_ACTIONS") == "true" {
+			// Workflow commands must start the line, so bypass the log prefix.
+			_, _ = fmt.Fprintf(w, "::warning file=%s,line=%d::%s\n", wn.Path, wn.Line, wn.Message)
+		} else {
+			logger.Printf("warning: %s:%d: %s", wn.Path, wn.Line, wn.Message)
+		}
 	}
 }
 
-func filterItems(unfilteredItems []api.ConfigurationItem, changedDirsJson string, globs []string, selector string) ([]api.ConfigurationItem, error) {
-	var items []api.ConfigurationItem
-
-	if changedDirsJson != "" {
-		changedDirs, err := api.UnmarshalChangedFileJson([]byte(changedDirsJson))
-		if err != nil {
-			return nil, fmt.Errorf("error unmarshaling changed dirs: %w", err)
-		}
-		items, err = file.ChangedFiles(unfilteredItems, changedDirs)
-		if err != nil {
-			return nil, fmt.Errorf("error filtering changed files: %w", err)
-		}
-	} else {
-		items = unfilteredItems
-	}
-
-	if len(globs) > 0 {
-		var err error
-		items, err = file.GlobFilter(items, globs)
-		if err != nil {
-			return nil, fmt.Errorf("error filtering by path glob: %w", err)
-		}
-	}
-
-	if selector != "" {
-		sel, err := api.ParseSelector(selector)
-		if err != nil {
-			return nil, err
-		}
-		items = file.SelectorFilter(items, sel)
-	}
-
-	return items, nil
-}
-
-func outputJson(configurations []api.ConfigurationItem) {
-	data, err := yaml.MarshalWithOptions(configurations,
-		yaml.JSON(),
-	)
-	if err != nil {
-		log.Fatalf("Error marshaling json: %v", err)
-	}
-	fmt.Println(string(data))
-}
-
-func outputYaml(configurations []api.ConfigurationItem) {
-	data, err := yaml.Marshal(configurations)
-	if err != nil {
-		log.Fatalf("Error marshaling yaml: %v", err)
-	}
-	fmt.Println(string(data))
-}
+// wrap prefixes err with msg. The prefixes are user-visible output, hence capitalised.
+func wrap(msg string, err error) error { return fmt.Errorf("%s: %w", msg, err) }

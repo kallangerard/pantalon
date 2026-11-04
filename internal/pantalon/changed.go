@@ -1,19 +1,50 @@
-package file
+package pantalon
 
 import (
+	"encoding/json"
+	"errors"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/bmatcuk/doublestar/v4"
-	"github.com/kallangerard/pantalon/api"
 )
+
+var ErrChangedDirOutsideRepo = errors.New("changed dir must be relative to the repository root")
+
+// ParseChangedDirs parses a JSON array of changed directories and
+// normalises each to a clean, slash-separated path relative to the repository
+// root, so "a/dev/", "./a/dev" and "a/dev" are equivalent and "" becomes ".".
+func ParseChangedDirs(j []byte) ([]string, error) {
+	var actualPaths []string
+	err := json.Unmarshal(j, &actualPaths)
+	if err != nil {
+		return nil, err
+	}
+
+	var errs []error
+
+	for i, p := range actualPaths {
+		p = path.Clean(filepath.ToSlash(p))
+		if path.IsAbs(p) || p == ".." || strings.HasPrefix(p, "../") {
+			errs = append(errs, errors.New(actualPaths[i]+": "+ErrChangedDirOutsideRepo.Error()))
+			continue
+		}
+		actualPaths[i] = p
+	}
+
+	if len(errs) > 0 {
+		return nil, errors.Join(errs...)
+	}
+	return actualPaths, nil
+}
 
 // ChangedFiles filters the list of unfiltered configuration files based on the list of changed directories.
 //
 // A configuration is selected when a changed directory is within its own
 // directory (or contains it), or matches its dependencies.paths.
-func ChangedFiles(allItems []api.ConfigurationItem, changedDirs []string) ([]api.ConfigurationItem, error) {
-	filteredCfgs := make([]api.ConfigurationItem, 0)
+func ChangedFiles(allItems []ConfigurationItem, changedDirs []string) ([]ConfigurationItem, error) {
+	filteredCfgs := make([]ConfigurationItem, 0)
 
 	for _, cfg := range allItems {
 		for _, dir := range changedDirs {

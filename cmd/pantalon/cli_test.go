@@ -36,7 +36,7 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 	code := m.Run()
-	os.RemoveAll(dir)
+	_ = os.RemoveAll(dir)
 	os.Exit(code)
 }
 
@@ -74,6 +74,7 @@ var cliCases = []cliCase{
 	{name: "bad-output-format", args: []string{"--output-format=xml"}},
 	{name: "unknown-flag", args: []string{"--nope"}},
 	{name: "help", args: []string{"--help"}},
+	{name: "help-short", args: []string{"-h"}},
 	{
 		name:  "no-configs",
 		files: map[string]string{"README.md": "hi\n"},
@@ -117,6 +118,10 @@ context:
 	{
 		name:  "misspelt-required-field",
 		files: map[string]string{"a/pantalon.yaml": header + "metadta: {name: a}\n"},
+	},
+	{
+		name:  "decode-error-with-unknown-field",
+		files: map[string]string{"a/pantalon.yaml": header + "metadata:\n  name: a\n  labels: [x]\ncontxt: {}\n"},
 	},
 	{
 		name:  "invalid-name",

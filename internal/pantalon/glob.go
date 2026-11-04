@@ -1,17 +1,16 @@
-package file
+package pantalon
 
 import (
 	"github.com/bmatcuk/doublestar/v4"
-	"github.com/kallangerard/pantalon/api"
 )
 
 // GlobFilter returns items whose Dir matches any of the provided doublestar glob patterns.
-func GlobFilter(items []api.ConfigurationItem, patterns []string) ([]api.ConfigurationItem, error) {
+func GlobFilter(items []ConfigurationItem, patterns []string) ([]ConfigurationItem, error) {
 	if len(patterns) == 0 {
 		return items, nil
 	}
 
-	filtered := make([]api.ConfigurationItem, 0)
+	filtered := make([]ConfigurationItem, 0)
 	for _, item := range items {
 		for _, pattern := range patterns {
 			matched, err := doublestar.Match(pattern, item.Dir)

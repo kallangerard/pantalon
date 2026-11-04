@@ -1,0 +1,10 @@
+exit: 1
+--- stdout ---
+--- stderr ---
+Error listing configurations: a/pantalon.yaml: [5:11] sequence was used where mapping is expected
+   2 | kind: TerraformConfiguration
+   3 | metadata:
+   4 |   name: a
+>  5 |   labels: [x]
+                 ^
+   6 | contxt: {} (line 6: unknown field "contxt")

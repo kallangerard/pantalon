@@ -1,4 +1,4 @@
-package file
+package pantalon
 
 import (
 	"fmt"
@@ -7,7 +7,6 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/kallangerard/pantalon/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,10 +30,10 @@ func genDirPath() *rapid.Generator[string] {
 }
 
 // genItem produces a ConfigurationItem with a generated directory path.
-func genItem() *rapid.Generator[api.ConfigurationItem] {
-	return rapid.Custom(func(t *rapid.T) api.ConfigurationItem {
+func genItem() *rapid.Generator[ConfigurationItem] {
+	return rapid.Custom(func(t *rapid.T) ConfigurationItem {
 		dir := genDirPath().Draw(t, "dir")
-		return api.ConfigurationItem{
+		return ConfigurationItem{
 			Name: genSegment().Draw(t, "name"),
 			Dir:  dir,
 			Path: dir + "/pantalon.yaml",
@@ -43,7 +42,7 @@ func genItem() *rapid.Generator[api.ConfigurationItem] {
 }
 
 // genItems produces a slice of 0-10 ConfigurationItems.
-func genItems() *rapid.Generator[[]api.ConfigurationItem] {
+func genItems() *rapid.Generator[[]ConfigurationItem] {
 	return rapid.SliceOfN(genItem(), 0, 10)
 }
 
@@ -71,7 +70,7 @@ func TestGlobFilter_Property_DoubleStarMatchesAll(t *testing.T) {
 func TestGlobFilter_Property_ExactPatternMatchesItem(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 		item := genItem().Draw(t, "item")
-		result, err := GlobFilter([]api.ConfigurationItem{item}, []string{item.Dir})
+		result, err := GlobFilter([]ConfigurationItem{item}, []string{item.Dir})
 		require.NoError(t, err)
 		assert.Contains(t, result, item)
 	})
@@ -95,7 +94,7 @@ func TestGlobFilter_Property_NoDuplicatesOnMultiplePatternMatch(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 		item := genItem().Draw(t, "item")
 		// item.Dir and "**" both match the item.
-		result, err := GlobFilter([]api.ConfigurationItem{item}, []string{item.Dir, "**"})
+		result, err := GlobFilter([]ConfigurationItem{item}, []string{item.Dir, "**"})
 		require.NoError(t, err)
 		assert.Len(t, result, 1)
 	})
@@ -124,9 +123,9 @@ func TestGlobFilter_Property_SingleStarDoesNotCrossSegments(t *testing.T) {
 		seg1 := genSegment().Draw(t, "seg1")
 		seg2 := genSegment().Draw(t, "seg2")
 		dir := seg1 + "/" + seg2
-		item := api.ConfigurationItem{Name: "x", Dir: dir, Path: dir + "/pantalon.yaml"}
+		item := ConfigurationItem{Name: "x", Dir: dir, Path: dir + "/pantalon.yaml"}
 
-		result, err := GlobFilter([]api.ConfigurationItem{item}, []string{"*"})
+		result, err := GlobFilter([]ConfigurationItem{item}, []string{"*"})
 		require.NoError(t, err)
 		assert.NotContains(t, result, item)
 	})
@@ -139,9 +138,9 @@ func TestGlobFilter_Property_PrefixDoubleStarMatchesChildren(t *testing.T) {
 		// Generate the remainder (at least one more segment).
 		rest := genDirPath().Draw(t, "rest")
 		dir := prefix + "/" + rest
-		item := api.ConfigurationItem{Name: "x", Dir: dir, Path: dir + "/pantalon.yaml"}
+		item := ConfigurationItem{Name: "x", Dir: dir, Path: dir + "/pantalon.yaml"}
 
-		result, err := GlobFilter([]api.ConfigurationItem{item}, []string{prefix + "/**"})
+		result, err := GlobFilter([]ConfigurationItem{item}, []string{prefix + "/**"})
 		require.NoError(t, err)
 		assert.Contains(t, result, item)
 	})

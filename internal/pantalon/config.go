@@ -1,4 +1,4 @@
-package api
+package pantalon
 
 import (
 	"errors"
@@ -21,16 +21,8 @@ const (
 	TerraformKind   = "TerraformConfiguration"
 )
 
-type PantalonConfig interface {
-	New() config
-	Unmarshal([]byte) (TerraformConfiguration, error)
-}
-
-type config struct {
-}
-
 type TerraformConfiguration struct {
-	ApiVersion   string            `yaml:"apiVersion"`
+	APIVersion   string            `yaml:"apiVersion"`
 	Kind         string            `yaml:"kind"`
 	Metadata     Metadata          `yaml:"metadata"`
 	Dependencies Dependencies      `yaml:"dependencies,omitempty"`
@@ -62,28 +54,39 @@ type Metadata struct {
 	Labels map[string]string `yaml:"labels,omitempty"`
 }
 
-func New() config {
-	return config{}
-}
-
-func (c config) Unmarshal(yamlDoc []byte) (TerraformConfiguration, error) {
+// Parse reads and validates a pantalon.yaml. Unknown fields are returned as
+// warnings rather than errors so older binaries can read newer configs. When
+// validation fails the warnings are folded into the error instead, naming the likely cause, since a
+// misspelt required field surfaces as a validation error.
+func Parse(yamlDoc []byte) (TerraformConfiguration, []Warning, error) {
 	cfg := TerraformConfiguration{}
 
 	if err := rejectAnchors(yamlDoc); err != nil {
-		return cfg, err
+		return cfg, nil, err
 	}
+
+	warnings := unknownFieldWarnings(yamlDoc)
 
 	err := yaml.Unmarshal(yamlDoc, &cfg)
+	if err == nil {
+		err = validateTerraform(cfg)
+	}
 	if err != nil {
-		return cfg, err
+		if len(warnings) > 0 {
+			err = fmt.Errorf("%w (%s)", err, joinWarnings(warnings))
+		}
+		return cfg, nil, err
 	}
 
-	err = c.validateTerraform(cfg)
-	if err != nil {
-		return cfg, err
-	}
+	return cfg, warnings, nil
+}
 
-	return cfg, nil
+func joinWarnings(warnings []Warning) string {
+	msgs := make([]string, len(warnings))
+	for i, w := range warnings {
+		msgs[i] = fmt.Sprintf("line %d: %s", w.Line, w.Message)
+	}
+	return strings.Join(msgs, "; ")
 }
 
 // rejectAnchors fails on anchors, aliases and merge keys: pantalon.yaml is
@@ -91,13 +94,13 @@ func (c config) Unmarshal(yamlDoc []byte) (TerraformConfiguration, error) {
 func rejectAnchors(yamlDoc []byte) error {
 	f, err := parser.ParseBytes(yamlDoc, 0)
 	if err != nil {
-		return nil // Unmarshal reports syntax errors
+		return nil // Parse reports syntax errors
 	}
 	if len(f.Docs) == 0 {
 		return nil
 	}
 	var v anchorFinder
-	ast.Walk(&v, f.Docs[0]) // like Unmarshal, read only the first document
+	ast.Walk(&v, f.Docs[0]) // like Parse, read only the first document
 	return v.err
 }
 
@@ -119,18 +122,19 @@ func (v *anchorFinder) Visit(n ast.Node) ast.Visitor {
 type Warning struct {
 	Line    int
 	Message string
+	Path    string // set by Discover
 }
 
-// Warnings reports fields this version of pantalon doesn't recognise.
-// Unmarshal ignores them rather than rejecting them so that older binaries
+// unknownFieldWarnings reports fields this version of pantalon doesn't recognise.
+// Parse ignores them rather than rejecting them so that older binaries
 // can read configs using newer fields.
-func Warnings(yamlDoc []byte) []Warning {
+func unknownFieldWarnings(yamlDoc []byte) []Warning {
 	f, err := parser.ParseBytes(yamlDoc, 0)
 	if err != nil || len(f.Docs) == 0 || f.Docs[0].Body == nil {
-		return nil // Unmarshal reports syntax errors
+		return nil // Parse reports syntax errors
 	}
 	if rejectAnchors(yamlDoc) != nil {
-		return nil // Unmarshal reports the anchor; unknown-field hints would mislead
+		return nil // Parse reports the anchor; unknown-field hints would mislead
 	}
 	return unknownFields(f.Docs[0].Body, reflect.TypeOf(TerraformConfiguration{}), "")
 }
@@ -169,7 +173,7 @@ func unknownFields(node ast.Node, t reflect.Type, prefix string) []Warning {
 		key := tk.Value
 		ft, ok := fields[key]
 		if !ok {
-			warnings = append(warnings, Warning{tk.Position.Line, fmt.Sprintf("unknown field %q", prefix+key)})
+			warnings = append(warnings, Warning{Line: tk.Position.Line, Message: fmt.Sprintf("unknown field %q", prefix+key)})
 			continue
 		}
 		warnings = append(warnings, unknownFields(v.Value, ft, prefix+key+".")...)
@@ -177,8 +181,8 @@ func unknownFields(node ast.Node, t reflect.Type, prefix string) []Warning {
 	return warnings
 }
 
-func (c config) validateTerraform(cfg TerraformConfiguration) error {
-	if cfg.ApiVersion != PantalonVersion {
+func validateTerraform(cfg TerraformConfiguration) error {
+	if cfg.APIVersion != PantalonVersion {
 		return errors.New("invalid version")
 	}
 
