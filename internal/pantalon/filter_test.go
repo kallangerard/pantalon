@@ -10,25 +10,25 @@ import (
 var filterTestItems = []ConfigurationItem{
 	{
 		Name:   "compute-dev",
-		Path:   "terraform/compute/environments/dev/yaml",
+		Path:   "terraform/compute/environments/dev/pantalon.yaml",
 		Dir:    "terraform/compute/environments/dev",
 		Labels: map[string]string{"environment": "dev", "team": "compute"},
 	},
 	{
 		Name:   "compute-prod",
-		Path:   "terraform/compute/environments/prod/yaml",
+		Path:   "terraform/compute/environments/prod/pantalon.yaml",
 		Dir:    "terraform/compute/environments/prod",
 		Labels: map[string]string{"environment": "prod", "team": "compute"},
 	},
 	{
 		Name:   "network-dev",
-		Path:   "terraform/network/environments/dev/yaml",
+		Path:   "terraform/network/environments/dev/pantalon.yaml",
 		Dir:    "terraform/network/environments/dev",
 		Labels: map[string]string{"environment": "dev", "team": "network"},
 	},
 	{
 		Name:   "network-prod",
-		Path:   "terraform/network/environments/prod/yaml",
+		Path:   "terraform/network/environments/prod/pantalon.yaml",
 		Dir:    "terraform/network/environments/prod",
 		Labels: map[string]string{"environment": "prod", "team": "network"},
 	},
