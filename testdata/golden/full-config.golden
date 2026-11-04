@@ -1,0 +1,5 @@
+exit: 0
+--- stdout ---
+[{"name": "a", "path": "a/pantalon.yaml", "dir": "a", "labels": {"env": "prod"}, "dependencies": {"paths": ["modules/**", "!modules/old"]}, "context": {"sa": "x@y.z"}}]
+
+--- stderr ---

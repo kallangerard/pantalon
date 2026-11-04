@@ -1,0 +1,4 @@
+exit: 1
+--- stdout ---
+--- stderr ---
+Error filtering items: error unmarshaling changed dirs: invalid character 'o' in literal null (expecting 'u')

@@ -1,0 +1,6 @@
+exit: 0
+--- stdout ---
+[{"name": "a", "path": "a/pantalon.yaml", "dir": "a", "labels": {}, "context": {}}]
+
+--- stderr ---
+warning: a/pantalon.yaml:4: unknown field "fromTheFuture"

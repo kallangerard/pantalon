@@ -1,0 +1,5 @@
+exit: 0
+--- stdout ---
+[{"name": "compute-dev", "path": "terraform/compute/environments/dev/pantalon.yaml", "dir": "terraform/compute/environments/dev", "labels": {"component": "compute", "environment": "dev"}, "dependencies": {"paths": ["terraform/compute/modules/**"]}, "context": {"gcp-service-account": "infrastructure@pantalon-dev.iam.gserviceaccount.com"}}, {"name": "compute-prod", "path": "terraform/compute/environments/prod/pantalon.yaml", "dir": "terraform/compute/environments/prod", "labels": {"component": "compute", "environment": "prod"}, "dependencies": {"paths": ["terraform/compute/modules/**", "!terraform/compute/modules/*/v2"]}, "context": {"gcp-service-account": "infrastructure@pantalon-prod.iam.gserviceaccount.com"}}, {"name": "compute-qa", "path": "terraform/compute/environments/qa/pantalon.yaml", "dir": "terraform/compute/environments/qa", "labels": {"component": "compute", "environment": "qa"}, "dependencies": {"paths": ["terraform/compute/modules/**"]}, "context": {"gcp-service-account": "infrastructure@pantalon-qa.iam.gserviceaccount.com"}}]
+
+--- stderr ---
