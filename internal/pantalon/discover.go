@@ -3,105 +3,77 @@ package pantalon
 import (
 	"errors"
 	"fmt"
-	"log"
-	"os"
-	"path/filepath"
+	"io/fs"
+	"path"
 	"strings"
 )
 
-func Search() ([]TerraformConfiguration, error) {
-	paths, err := findFiles()
+// Discover walks fsys for pantalon.yaml files, stopping descent at the first
+// match in each branch. Warnings are returned even when err is non-nil.
+func Discover(fsys fs.FS) ([]TerraformConfiguration, []Warning, error) {
+	paths, err := findFiles(fsys)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var result []TerraformConfiguration
+	var warnings []Warning
 	seen := make(map[string]string)
-	for _, path := range paths {
-		tfCfg, err := readFile(path)
+	for _, p := range paths {
+		tfCfg, ws, err := readFile(fsys, p)
+		warnings = append(warnings, ws...)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", path, err)
+			return nil, warnings, fmt.Errorf("%s: %w", p, err)
 		}
 		// Names identify CI jobs, so they must be unique across the repository
 		// regardless of any later filtering. Compare case-insensitively so
 		// that relaxing name validation can't let "Dev" and "dev" coexist.
 		key := strings.ToLower(tfCfg.Metadata.Name)
 		if other, ok := seen[key]; ok {
-			return nil, fmt.Errorf("duplicate metadata.name %q in %s and %s", tfCfg.Metadata.Name, other, path)
+			return nil, warnings, fmt.Errorf("duplicate metadata.name %q in %s and %s", tfCfg.Metadata.Name, other, p)
 		}
-		seen[key] = path
-		tfCfg.Path = path
+		seen[key] = p
+		tfCfg.Path = p
 		result = append(result, tfCfg)
 	}
-	return result, nil
+	return result, warnings, nil
 }
 
-func findFiles() ([]string, error) {
+func findFiles(fsys fs.FS) ([]string, error) {
 	var result []string
-	err := filepath.WalkDir(".", func(path string, entry os.DirEntry, err error) error {
+	err := fs.WalkDir(fsys, ".", func(p string, entry fs.DirEntry, err error) error {
 		if err != nil {
-			log.Println(err)
 			return err
 		}
-
 		if !entry.IsDir() {
 			return nil
 		}
 
-		pantalonPath := filepath.Join(path, "pantalon.yaml")
-
-		_, err = os.Stat(pantalonPath)
-		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				// Skip this directory if it doesn't contain a pantalon.yaml file
-				return nil
+		pantalonPath := path.Join(p, "pantalon.yaml")
+		if _, err := fs.Stat(fsys, pantalonPath); err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				return nil // no marker here, keep descending
 			}
 			return err
 		}
 
 		result = append(result, pantalonPath)
-		return filepath.SkipDir
+		return fs.SkipDir
 	})
-
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func readFile(path string) (TerraformConfiguration, error) {
-	file, err := os.ReadFile(path)
+func readFile(fsys fs.FS, p string) (TerraformConfiguration, []Warning, error) {
+	data, err := fs.ReadFile(fsys, p)
 	if err != nil {
-		return TerraformConfiguration{}, err
+		return TerraformConfiguration{}, nil, err
 	}
-
-	warnings := Warnings(file)
-
-	tfCfg, err := Parse(file)
-	if err != nil {
-		// A misspelt required field surfaces as a validation error, so name
-		// the likely cause.
-		if len(warnings) > 0 {
-			return TerraformConfiguration{}, fmt.Errorf("%w (%s)", err, joinWarnings(warnings))
-		}
-		return TerraformConfiguration{}, err
+	cfg, warnings, err := Parse(data)
+	for i := range warnings {
+		warnings[i].Path = p
 	}
-
-	for _, w := range warnings {
-		if os.Getenv("GITHUB_ACTIONS") == "true" {
-			// Workflow commands must start the line, so bypass the log prefix.
-			fmt.Fprintf(log.Writer(), "::warning file=%s,line=%d::%s\n", path, w.Line, w.Message)
-		} else {
-			log.Printf("warning: %s:%d: %s", path, w.Line, w.Message)
-		}
-	}
-	return tfCfg, nil
-}
-
-func joinWarnings(warnings []Warning) string {
-	msgs := make([]string, len(warnings))
-	for i, w := range warnings {
-		msgs[i] = fmt.Sprintf("line %d: %s", w.Line, w.Message)
-	}
-	return strings.Join(msgs, "; ")
+	return cfg, warnings, err
 }

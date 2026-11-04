@@ -1,29 +1,23 @@
 package pantalon
 
 import (
-	"bytes"
-	"log"
+	"io/fs"
 	"os"
 	"path"
-	"path/filepath"
 	"testing"
+	"testing/fstest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestWalkDir(t *testing.T) {
-	originalCwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { os.Chdir(originalCwd) })
 	root := path.Join("..", "..", "testdata", "terraform", "single-dir")
-	os.Chdir(root)
+	fsys := os.DirFS(root)
 
 	expectedPaths := []string{path.Join("pantalon.yaml")}
 
-	paths, err := findFiles()
+	paths, err := findFiles(fsys)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,17 +26,12 @@ func TestWalkDir(t *testing.T) {
 }
 
 func TestWalkDir_NestedFileShouldBeFound(t *testing.T) {
-	originalCwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { os.Chdir(originalCwd) })
 	root := path.Join("..", "..", "testdata", "terraform", "nested-dir")
-	os.Chdir(root)
+	fsys := os.DirFS(root)
 
 	expectedPath := path.Join("parent", "pantalon.yaml")
 
-	paths, err := findFiles()
+	paths, err := findFiles(fsys)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,17 +40,11 @@ func TestWalkDir_NestedFileShouldBeFound(t *testing.T) {
 }
 
 func TestWalkDir_ChildDirectoriesShouldNotBeSearched(t *testing.T) {
-	originalCwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { os.Chdir(originalCwd) })
-
 	root := path.Join("..", "..", "testdata", "terraform", "nested-dir")
 	expectedPaths := []string{path.Join("parent", "pantalon.yaml")}
-	os.Chdir(root)
+	fsys := os.DirFS(root)
 
-	paths, err := findFiles()
+	paths, err := findFiles(fsys)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,13 +53,8 @@ func TestWalkDir_ChildDirectoriesShouldNotBeSearched(t *testing.T) {
 }
 
 func TestWalkDir_SiblingDirectories(t *testing.T) {
-	originalCwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { os.Chdir(originalCwd) })
 	root := path.Join("..", "..", "testdata", "terraform", "sibling-dir")
-	os.Chdir(root)
+	fsys := os.DirFS(root)
 
 	expectedPaths := []string{
 		path.Join("a", "pantalon.yaml"),
@@ -84,7 +62,7 @@ func TestWalkDir_SiblingDirectories(t *testing.T) {
 		path.Join("c", "pantalon.yaml"),
 	}
 
-	paths, err := findFiles()
+	paths, err := findFiles(fsys)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,9 +71,9 @@ func TestWalkDir_SiblingDirectories(t *testing.T) {
 }
 
 func TestReadFile_Success(t *testing.T) {
-	path := path.Join("..", "..", "testdata", "terraform", "single-dir", "pantalon.yaml")
+	fsys := os.DirFS(path.Join("..", "..", "testdata", "terraform", "single-dir"))
 
-	cfg, err := readFile(path)
+	cfg, _, err := readFile(fsys, "pantalon.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,14 +84,9 @@ func TestReadFile_Success(t *testing.T) {
 }
 
 // If a single valid file exists the readFile function should return a single TerraformConfiguration.
-func TestSearch_Success(t *testing.T) {
-	originalCwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { os.Chdir(originalCwd) })
+func TestDiscover_Success(t *testing.T) {
 	root := path.Join("..", "..", "testdata", "terraform", "single-dir")
-	os.Chdir(root)
+	fsys := os.DirFS(root)
 
 	expected := []TerraformConfiguration{
 		{
@@ -126,7 +99,7 @@ func TestSearch_Success(t *testing.T) {
 		},
 	}
 
-	result, err := Search()
+	result, _, err := Discover(fsys)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,15 +107,10 @@ func TestSearch_Success(t *testing.T) {
 	assert.Equal(t, expected, result)
 }
 
-// If multiple valid files exist in the path the Search function should return all of them as TerraformConfiguration.
-func TestSearch_MultipleFiles(t *testing.T) {
-	originalCwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { os.Chdir(originalCwd) })
+// If multiple valid files exist in the path the Discover function should return all of them as TerraformConfiguration.
+func TestDiscover_MultipleFiles(t *testing.T) {
 	root := path.Join("..", "..", "testdata", "terraform", "sibling-dir")
-	os.Chdir(root)
+	fsys := os.DirFS(root)
 
 	expected := []TerraformConfiguration{
 		{
@@ -171,7 +139,7 @@ func TestSearch_MultipleFiles(t *testing.T) {
 		},
 	}
 
-	result, err := Search()
+	result, _, err := Discover(fsys)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,17 +147,12 @@ func TestSearch_MultipleFiles(t *testing.T) {
 	assert.Equal(t, expected, result)
 }
 
-// If no files are found the Search function should return an empty slice.
-func TestSearch_NoFilesFound(t *testing.T) {
-	originalCwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { os.Chdir(originalCwd) })
+// If no files are found the Discover function should return an empty slice.
+func TestDiscover_NoFilesFound(t *testing.T) {
 	root := path.Join("..", "..", "testdata", "terraform", "empty-dir")
-	os.Chdir(root)
+	fsys := os.DirFS(root)
 
-	result, err := Search()
+	result, _, err := Discover(fsys)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,95 +160,54 @@ func TestSearch_NoFilesFound(t *testing.T) {
 	assert.Empty(t, result)
 }
 
-// writeConfigs writes each path's pantalon.yaml content under a temp dir and
-// changes into it.
-func writeConfigs(t *testing.T, files map[string]string) {
-	dir := t.TempDir()
+// writeConfigs returns an in-memory tree holding each path's content.
+func writeConfigs(files map[string]string) fs.FS {
+	m := fstest.MapFS{}
 	for p, content := range files {
-		full := filepath.Join(dir, p)
-		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
-			t.Fatal(err)
-		}
+		m[p] = &fstest.MapFile{Data: []byte(content)}
 	}
-	originalCwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.Chdir(originalCwd) })
-	if err := os.Chdir(dir); err != nil {
-		t.Fatal(err)
-	}
+	return m
 }
 
 const configHeader = "apiVersion: pantalon.kallan.dev/v1alpha1\nkind: TerraformConfiguration\n"
 
-func TestSearch_ErrorNamesFile(t *testing.T) {
-	writeConfigs(t, map[string]string{"a/pantalon.yaml": configHeader + "metadata:\n  name: Not_Valid\n"})
+func TestDiscover_ErrorNamesFile(t *testing.T) {
+	fsys := writeConfigs(map[string]string{"a/pantalon.yaml": configHeader + "metadata:\n  name: Not_Valid\n"})
 
-	_, err := Search()
+	_, _, err := Discover(fsys)
 	assert.EqualError(t, err, `a/pantalon.yaml: invalid metadata.name "Not_Valid"`)
 }
 
-func TestSearch_ValidationErrorNamesUnknownField(t *testing.T) {
-	writeConfigs(t, map[string]string{"a/pantalon.yaml": configHeader + "metadata:\n  nmae: a\n"})
+func TestDiscover_ValidationErrorNamesUnknownField(t *testing.T) {
+	fsys := writeConfigs(map[string]string{"a/pantalon.yaml": configHeader + "metadata:\n  nmae: a\n"})
 
-	_, err := Search()
+	_, _, err := Discover(fsys)
 	assert.EqualError(t, err, `a/pantalon.yaml: invalid metadata.name "" (line 4: unknown field "metadata.nmae")`)
 }
 
-func TestSearch_AnchorErrorNamesFileAndLine(t *testing.T) {
-	writeConfigs(t, map[string]string{"a/pantalon.yaml": configHeader + "metadata:\n  name: a\nbase: &b 1\n"})
+func TestDiscover_AnchorErrorNamesFileAndLine(t *testing.T) {
+	fsys := writeConfigs(map[string]string{"a/pantalon.yaml": configHeader + "metadata:\n  name: a\nbase: &b 1\n"})
 
-	_, err := Search()
+	_, _, err := Discover(fsys)
 	assert.EqualError(t, err, "a/pantalon.yaml: line 5: YAML anchors, aliases and merge keys are not supported")
 }
 
-// captureLog returns the log output written during the test.
-func captureLog(t *testing.T) *bytes.Buffer {
-	var buf bytes.Buffer
-	log.SetOutput(&buf)
-	log.SetFlags(0)
-	t.Cleanup(func() {
-		log.SetOutput(os.Stderr)
-		log.SetFlags(log.LstdFlags)
-	})
-	return &buf
-}
+func TestDiscover_UnknownFieldWarns(t *testing.T) {
+	fsys := writeConfigs(map[string]string{"a/pantalon.yaml": configHeader + "metadata:\n  name: a\ndependecies:\n  paths: [b]\n"})
 
-const typoConfig = configHeader + "metadata:\n  name: a\ndependecies:\n  paths: [b]\n"
-
-func TestSearch_UnknownFieldWarns(t *testing.T) {
-	t.Setenv("GITHUB_ACTIONS", "")
-	writeConfigs(t, map[string]string{"a/pantalon.yaml": typoConfig})
-	logs := captureLog(t)
-
-	result, err := Search()
+	result, warnings, err := Discover(fsys)
 	require.NoError(t, err)
 
 	assert.Equal(t, "a", result[0].Metadata.Name)
-	assert.Equal(t, "warning: a/pantalon.yaml:5: unknown field \"dependecies\"\n", logs.String())
+	assert.Equal(t, []Warning{{Path: "a/pantalon.yaml", Line: 5, Message: `unknown field "dependecies"`}}, warnings)
 }
 
-func TestSearch_UnknownFieldAnnotatesInGitHubActions(t *testing.T) {
-	t.Setenv("GITHUB_ACTIONS", "true")
-	writeConfigs(t, map[string]string{"a/pantalon.yaml": typoConfig})
-	logs := captureLog(t)
-
-	_, err := Search()
-	require.NoError(t, err)
-
-	assert.Equal(t, "::warning file=a/pantalon.yaml,line=5::unknown field \"dependecies\"\n", logs.String())
-}
-
-func TestSearch_DuplicateName(t *testing.T) {
-	writeConfigs(t, map[string]string{
+func TestDiscover_DuplicateName(t *testing.T) {
+	fsys := writeConfigs(map[string]string{
 		"a/pantalon.yaml": configHeader + "metadata:\n  name: same\n",
 		"b/pantalon.yaml": configHeader + "metadata:\n  name: same\n",
 	})
 
-	_, err := Search()
+	_, _, err := Discover(fsys)
 	assert.EqualError(t, err, `duplicate metadata.name "same" in a/pantalon.yaml and b/pantalon.yaml`)
 }

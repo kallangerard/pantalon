@@ -54,24 +54,39 @@ type Metadata struct {
 	Labels map[string]string `yaml:"labels,omitempty"`
 }
 
-func Parse(yamlDoc []byte) (TerraformConfiguration, error) {
+// Parse reads and validates a pantalon.yaml. Unknown fields are returned as
+// warnings rather than errors so older binaries can read newer configs. When
+// validation fails the warnings are folded into the error instead, naming the likely cause, since a
+// misspelt required field surfaces as a validation error.
+func Parse(yamlDoc []byte) (TerraformConfiguration, []Warning, error) {
 	cfg := TerraformConfiguration{}
 
 	if err := rejectAnchors(yamlDoc); err != nil {
-		return cfg, err
+		return cfg, nil, err
 	}
 
-	err := yaml.Unmarshal(yamlDoc, &cfg)
-	if err != nil {
-		return cfg, err
+	warnings := unknownFieldWarnings(yamlDoc)
+
+	if err := yaml.Unmarshal(yamlDoc, &cfg); err != nil {
+		return cfg, nil, err
 	}
 
-	err = validateTerraform(cfg)
-	if err != nil {
-		return cfg, err
+	if err := validateTerraform(cfg); err != nil {
+		if len(warnings) > 0 {
+			err = fmt.Errorf("%w (%s)", err, joinWarnings(warnings))
+		}
+		return cfg, nil, err
 	}
 
-	return cfg, nil
+	return cfg, warnings, nil
+}
+
+func joinWarnings(warnings []Warning) string {
+	msgs := make([]string, len(warnings))
+	for i, w := range warnings {
+		msgs[i] = fmt.Sprintf("line %d: %s", w.Line, w.Message)
+	}
+	return strings.Join(msgs, "; ")
 }
 
 // rejectAnchors fails on anchors, aliases and merge keys: pantalon.yaml is
@@ -107,12 +122,13 @@ func (v *anchorFinder) Visit(n ast.Node) ast.Visitor {
 type Warning struct {
 	Line    int
 	Message string
+	Path    string // set by Discover
 }
 
-// Warnings reports fields this version of pantalon doesn't recognise.
+// unknownFieldWarnings reports fields this version of pantalon doesn't recognise.
 // Parse ignores them rather than rejecting them so that older binaries
 // can read configs using newer fields.
-func Warnings(yamlDoc []byte) []Warning {
+func unknownFieldWarnings(yamlDoc []byte) []Warning {
 	f, err := parser.ParseBytes(yamlDoc, 0)
 	if err != nil || len(f.Docs) == 0 || f.Docs[0].Body == nil {
 		return nil // Parse reports syntax errors
@@ -157,7 +173,7 @@ func unknownFields(node ast.Node, t reflect.Type, prefix string) []Warning {
 		key := tk.Value
 		ft, ok := fields[key]
 		if !ok {
-			warnings = append(warnings, Warning{tk.Position.Line, fmt.Sprintf("unknown field %q", prefix+key)})
+			warnings = append(warnings, Warning{Line: tk.Position.Line, Message: fmt.Sprintf("unknown field %q", prefix+key)})
 			continue
 		}
 		warnings = append(warnings, unknownFields(v.Value, ft, prefix+key+".")...)
