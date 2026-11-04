@@ -18,8 +18,7 @@ metadata:
 )
 
 func TestUnmarshalTerraformConfiguration_Minimal(t *testing.T) {
-	cfg := config{}
-	v, err := cfg.Unmarshal([]byte(minimalYamlDoc))
+	v, err := Parse([]byte(minimalYamlDoc))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,8 +27,7 @@ func TestUnmarshalTerraformConfiguration_Minimal(t *testing.T) {
 }
 
 func TestUnmarshalTerraformConfiguration_ApiVersionKindMatch(t *testing.T) {
-	cfg := config{}
-	v, err := cfg.Unmarshal([]byte(minimalYamlDoc))
+	v, err := Parse([]byte(minimalYamlDoc))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,8 +48,7 @@ context:
   bar: b
   baz: true
 `
-	cfg := config{}
-	tfCfg, err := cfg.Unmarshal([]byte(yamlDoc))
+	tfCfg, err := Parse([]byte(yamlDoc))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,8 +65,7 @@ kind: TerraformConfiguration
 metadata:
   name: hello-world
 `
-	cfg := config{}
-	_, err := cfg.Unmarshal([]byte(yamlDoc))
+	_, err := Parse([]byte(yamlDoc))
 	assert.EqualError(t, err, "invalid version")
 }
 
@@ -81,8 +77,7 @@ apiVersion: pantalon.kallan.dev/v1alpha1
 metadata:
   name: hello_world
 `
-	cfg := config{}
-	_, err := cfg.Unmarshal([]byte(yamlDoc))
+	_, err := Parse([]byte(yamlDoc))
 	assert.ErrorContains(t, err, "invalid metadata.name")
 }
 
@@ -94,8 +89,7 @@ apiVersion: pantalon.kallan.dev/v1alpha1
 metadata:
   name: hello.world
 `
-	cfg := config{}
-	_, err := cfg.Unmarshal([]byte(yamlDoc))
+	_, err := Parse([]byte(yamlDoc))
 	assert.ErrorContains(t, err, "invalid metadata.name")
 }
 
@@ -108,8 +102,7 @@ apiVersion: pantalon.kallan.dev/v1alpha1
 metadata:
   name: Hello-world
 `
-	cfg := config{}
-	_, err := cfg.Unmarshal([]byte(yamlDoc))
+	_, err := Parse([]byte(yamlDoc))
 	assert.ErrorContains(t, err, `invalid metadata.name "Hello-world"`)
 }
 
@@ -213,7 +206,7 @@ metadata:
     environment: prod
     example.com/tier: "1"
 `
-	tfCfg, err := config{}.Unmarshal([]byte(yamlDoc))
+	tfCfg, err := Parse([]byte(yamlDoc))
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]string{"environment": "prod", "example.com/tier": "1"}, tfCfg.Metadata.Labels)
 }
@@ -225,7 +218,7 @@ func TestUnmarshalTerraformConfiguration_InvalidLabels(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			yamlDoc := minimalYamlDoc + "  labels:\n    " + labels + "\n"
-			_, err := config{}.Unmarshal([]byte(yamlDoc))
+			_, err := Parse([]byte(yamlDoc))
 			assert.Error(t, err)
 		})
 	}
@@ -247,7 +240,7 @@ func TestUnmarshalTerraformConfiguration_WithDependencies(t *testing.T) {
     - "!terraform/compute/modules/*/v1"
     - terraform/shared/providers
 `
-	tfCfg, err := config{}.Unmarshal([]byte(yamlDoc))
+	tfCfg, err := Parse([]byte(yamlDoc))
 	assert.NoError(t, err)
 	assert.Equal(t, []string{
 		"terraform/compute/modules/**",
@@ -269,7 +262,7 @@ func TestUnmarshalTerraformConfiguration_InvalidDependencies(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			yamlDoc := minimalYamlDoc + "dependencies:\n  paths: " + paths + "\n"
-			_, err := config{}.Unmarshal([]byte(yamlDoc))
+			_, err := Parse([]byte(yamlDoc))
 			assert.ErrorContains(t, err, "invalid dependencies.paths")
 		})
 	}
@@ -357,7 +350,7 @@ dependecies:
 
 // Older binaries must still read configs that use fields added later.
 func TestUnmarshalTerraformConfiguration_IgnoresUnknownFields(t *testing.T) {
-	_, err := config{}.Unmarshal([]byte(minimalYamlDoc + "fromTheFuture: true\n"))
+	_, err := Parse([]byte(minimalYamlDoc + "fromTheFuture: true\n"))
 	assert.NoError(t, err)
 }
 
@@ -368,7 +361,7 @@ func TestUnmarshalTerraformConfiguration_RejectsAnchors(t *testing.T) {
 		"merge":  minimalYamlDoc + "context:\n  <<: {a: 1}\n",
 	} {
 		t.Run(name, func(t *testing.T) {
-			_, err := config{}.Unmarshal([]byte(doc))
+			_, err := Parse([]byte(doc))
 			assert.ErrorContains(t, err, "line 8: YAML anchors, aliases and merge keys are not supported")
 		})
 	}
@@ -383,7 +376,7 @@ func TestUnmarshalTerraformConfiguration_AllowsAnchorLookalikes(t *testing.T) {
 ---
 later: &ignored 1
 `
-	_, err := config{}.Unmarshal([]byte(doc))
+	_, err := Parse([]byte(doc))
 	assert.NoError(t, err)
 }
 

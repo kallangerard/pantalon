@@ -21,14 +21,6 @@ const (
 	TerraformKind   = "TerraformConfiguration"
 )
 
-type PantalonConfig interface {
-	New() config
-	Unmarshal([]byte) (TerraformConfiguration, error)
-}
-
-type config struct {
-}
-
 type TerraformConfiguration struct {
 	ApiVersion   string            `yaml:"apiVersion"`
 	Kind         string            `yaml:"kind"`
@@ -62,11 +54,7 @@ type Metadata struct {
 	Labels map[string]string `yaml:"labels,omitempty"`
 }
 
-func New() config {
-	return config{}
-}
-
-func (c config) Unmarshal(yamlDoc []byte) (TerraformConfiguration, error) {
+func Parse(yamlDoc []byte) (TerraformConfiguration, error) {
 	cfg := TerraformConfiguration{}
 
 	if err := rejectAnchors(yamlDoc); err != nil {
@@ -78,7 +66,7 @@ func (c config) Unmarshal(yamlDoc []byte) (TerraformConfiguration, error) {
 		return cfg, err
 	}
 
-	err = c.validateTerraform(cfg)
+	err = validateTerraform(cfg)
 	if err != nil {
 		return cfg, err
 	}
@@ -91,13 +79,13 @@ func (c config) Unmarshal(yamlDoc []byte) (TerraformConfiguration, error) {
 func rejectAnchors(yamlDoc []byte) error {
 	f, err := parser.ParseBytes(yamlDoc, 0)
 	if err != nil {
-		return nil // Unmarshal reports syntax errors
+		return nil // Parse reports syntax errors
 	}
 	if len(f.Docs) == 0 {
 		return nil
 	}
 	var v anchorFinder
-	ast.Walk(&v, f.Docs[0]) // like Unmarshal, read only the first document
+	ast.Walk(&v, f.Docs[0]) // like Parse, read only the first document
 	return v.err
 }
 
@@ -122,15 +110,15 @@ type Warning struct {
 }
 
 // Warnings reports fields this version of pantalon doesn't recognise.
-// Unmarshal ignores them rather than rejecting them so that older binaries
+// Parse ignores them rather than rejecting them so that older binaries
 // can read configs using newer fields.
 func Warnings(yamlDoc []byte) []Warning {
 	f, err := parser.ParseBytes(yamlDoc, 0)
 	if err != nil || len(f.Docs) == 0 || f.Docs[0].Body == nil {
-		return nil // Unmarshal reports syntax errors
+		return nil // Parse reports syntax errors
 	}
 	if rejectAnchors(yamlDoc) != nil {
-		return nil // Unmarshal reports the anchor; unknown-field hints would mislead
+		return nil // Parse reports the anchor; unknown-field hints would mislead
 	}
 	return unknownFields(f.Docs[0].Body, reflect.TypeOf(TerraformConfiguration{}), "")
 }
@@ -177,7 +165,7 @@ func unknownFields(node ast.Node, t reflect.Type, prefix string) []Warning {
 	return warnings
 }
 
-func (c config) validateTerraform(cfg TerraformConfiguration) error {
+func validateTerraform(cfg TerraformConfiguration) error {
 	if cfg.ApiVersion != PantalonVersion {
 		return errors.New("invalid version")
 	}

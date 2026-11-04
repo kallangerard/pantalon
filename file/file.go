@@ -79,8 +79,7 @@ func readFile(path string) (api.TerraformConfiguration, error) {
 
 	warnings := api.Warnings(file)
 
-	cfg := api.New()
-	tfCfg, err := cfg.Unmarshal(file)
+	tfCfg, err := api.Parse(file)
 	if err != nil {
 		// A misspelt required field surfaces as a validation error, so name
 		// the likely cause.
