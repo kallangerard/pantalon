@@ -1,0 +1,34 @@
+exit: 0
+--- stdout ---
+--- stderr ---
+pantalon - identify Terraform root module configurations for CI/CD pipelines
+
+Walks the repository from the current directory, finds pantalon.yaml marker
+files, and emits a machine-readable list of Terraform root modules suitable
+for use in GitHub Actions job matrices or other CI/CD tooling.
+
+Usage:
+  pantalon [flags]
+
+Flags:
+  -changed-dirs string
+    	JSON array of changed directories; filters output to matching configs (e.g. '["terraform/compute/environments/dev"]')
+  -help
+    	Show help
+  -l value
+    	Shorthand for --selector
+  -output-format string
+    	Output format: json or yaml (default "json")
+  -path-glob value
+    	Doublestar glob pattern to filter configurations by directory path (repeatable, OR logic)
+  -selector value
+    	Label selector to filter configurations (e.g. 'environment=prod,team in (a,b),!legacy')
+
+Examples:
+  pantalon
+  pantalon --output-format=yaml
+  pantalon --changed-dirs='["terraform/compute/environments/dev"]'
+  pantalon --path-glob='terraform/compute/**'
+  pantalon --path-glob='terraform/compute/**' --path-glob='terraform/data/**'
+  pantalon -l 'environment=prod'
+  pantalon --selector='environment in (dev,qa),team!=data'

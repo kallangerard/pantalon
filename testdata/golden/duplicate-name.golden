@@ -1,0 +1,4 @@
+exit: 1
+--- stdout ---
+--- stderr ---
+Error listing configurations: duplicate metadata.name "dup" in a/pantalon.yaml and b/pantalon.yaml

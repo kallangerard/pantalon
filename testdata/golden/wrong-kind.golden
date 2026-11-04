@@ -1,0 +1,4 @@
+exit: 1
+--- stdout ---
+--- stderr ---
+Error listing configurations: a/pantalon.yaml: invalid kind

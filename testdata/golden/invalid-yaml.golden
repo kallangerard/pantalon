@@ -1,0 +1,6 @@
+exit: 1
+--- stdout ---
+--- stderr ---
+Error listing configurations: a/pantalon.yaml: [1:11] sequence end token ']' not found
+>  1 | metadata: [unclosed
+                 ^

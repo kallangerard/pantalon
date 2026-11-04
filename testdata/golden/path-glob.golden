@@ -1,0 +1,5 @@
+exit: 0
+--- stdout ---
+[{"name": "data-dev", "path": "terraform/data/environments/dev/pantalon.yaml", "dir": "terraform/data/environments/dev", "labels": {"component": "data", "environment": "dev"}, "context": {"gcp-service-account": "infrastructure@pantalon-dev.iam.gserviceaccount.com"}}, {"name": "data-prod", "path": "terraform/data/environments/prod/pantalon.yaml", "dir": "terraform/data/environments/prod", "labels": {"component": "data", "environment": "prod"}, "context": {"gcp-service-account": "infrastructure@pantalon-prod.iam.gserviceaccount.com"}}, {"name": "data-qa", "path": "terraform/data/environments/qa/pantalon.yaml", "dir": "terraform/data/environments/qa", "labels": {"component": "data", "environment": "qa"}, "context": {"gcp-service-account": "infrastructure@pantalon-qa.iam.gserviceaccount.com"}}]
+
+--- stderr ---

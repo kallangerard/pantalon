@@ -1,0 +1,4 @@
+exit: 1
+--- stdout ---
+--- stderr ---
+Error filtering items: error unmarshaling changed dirs: ../x: changed dir must be relative to the repository root

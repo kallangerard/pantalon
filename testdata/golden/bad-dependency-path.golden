@@ -1,0 +1,4 @@
+exit: 1
+--- stdout ---
+--- stderr ---
+Error listing configurations: a/pantalon.yaml: invalid dependencies.paths[0] "../x": pattern must be relative to the repository root
