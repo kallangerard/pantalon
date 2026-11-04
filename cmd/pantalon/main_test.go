@@ -3,12 +3,12 @@ package main
 import (
 	"testing"
 
-	"github.com/kallangerard/pantalon/api"
+	"github.com/kallangerard/pantalon/internal/pantalon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var filterTestItems = []api.ConfigurationItem{
+var filterTestItems = []pantalon.ConfigurationItem{
 	{
 		Name:   "compute-dev",
 		Path:   "terraform/compute/environments/dev/pantalon.yaml",
@@ -38,7 +38,7 @@ var filterTestItems = []api.ConfigurationItem{
 func TestFilterItems_PathGlobDefined_NoChangedDirs(t *testing.T) {
 	result, err := filterItems(filterTestItems, "", []string{"terraform/compute/**"}, "")
 	require.NoError(t, err)
-	assert.Equal(t, []api.ConfigurationItem{filterTestItems[0], filterTestItems[1]}, result)
+	assert.Equal(t, []pantalon.ConfigurationItem{filterTestItems[0], filterTestItems[1]}, result)
 }
 
 func TestFilterItems_NoChangedDirs_ReturnsAllItems(t *testing.T) {
@@ -50,14 +50,14 @@ func TestFilterItems_NoChangedDirs_ReturnsAllItems(t *testing.T) {
 func TestFilterItems_Selector(t *testing.T) {
 	result, err := filterItems(filterTestItems, "", nil, "environment=prod")
 	require.NoError(t, err)
-	assert.Equal(t, []api.ConfigurationItem{filterTestItems[1], filterTestItems[3]}, result)
+	assert.Equal(t, []pantalon.ConfigurationItem{filterTestItems[1], filterTestItems[3]}, result)
 }
 
 func TestFilterItems_SelectorCombinedWithGlobAndChangedDirs(t *testing.T) {
 	changed := `["terraform/compute/environments/prod","terraform/network/environments/prod"]`
 	result, err := filterItems(filterTestItems, changed, []string{"terraform/network/**"}, "team in (network,data),environment=prod")
 	require.NoError(t, err)
-	assert.Equal(t, []api.ConfigurationItem{filterTestItems[3]}, result)
+	assert.Equal(t, []pantalon.ConfigurationItem{filterTestItems[3]}, result)
 }
 
 func TestFilterItems_InvalidSelector(t *testing.T) {

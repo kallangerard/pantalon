@@ -1,4 +1,4 @@
-package api
+package pantalon
 
 import (
 	"errors"
@@ -22,7 +22,7 @@ const (
 )
 
 type TerraformConfiguration struct {
-	ApiVersion   string            `yaml:"apiVersion"`
+	APIVersion   string            `yaml:"apiVersion"`
 	Kind         string            `yaml:"kind"`
 	Metadata     Metadata          `yaml:"metadata"`
 	Dependencies Dependencies      `yaml:"dependencies,omitempty"`
@@ -166,7 +166,7 @@ func unknownFields(node ast.Node, t reflect.Type, prefix string) []Warning {
 }
 
 func validateTerraform(cfg TerraformConfiguration) error {
-	if cfg.ApiVersion != PantalonVersion {
+	if cfg.APIVersion != PantalonVersion {
 		return errors.New("invalid version")
 	}
 

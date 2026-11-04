@@ -1,4 +1,4 @@
-package file
+package pantalon
 
 import (
 	"bytes"
@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/kallangerard/pantalon/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +18,7 @@ func TestWalkDir(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { os.Chdir(originalCwd) })
-	root := path.Join("..", "testdata", "terraform", "single-dir")
+	root := path.Join("..", "..", "testdata", "terraform", "single-dir")
 	os.Chdir(root)
 
 	expectedPaths := []string{path.Join("pantalon.yaml")}
@@ -38,7 +37,7 @@ func TestWalkDir_NestedFileShouldBeFound(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { os.Chdir(originalCwd) })
-	root := path.Join("..", "testdata", "terraform", "nested-dir")
+	root := path.Join("..", "..", "testdata", "terraform", "nested-dir")
 	os.Chdir(root)
 
 	expectedPath := path.Join("parent", "pantalon.yaml")
@@ -58,7 +57,7 @@ func TestWalkDir_ChildDirectoriesShouldNotBeSearched(t *testing.T) {
 	}
 	t.Cleanup(func() { os.Chdir(originalCwd) })
 
-	root := path.Join("..", "testdata", "terraform", "nested-dir")
+	root := path.Join("..", "..", "testdata", "terraform", "nested-dir")
 	expectedPaths := []string{path.Join("parent", "pantalon.yaml")}
 	os.Chdir(root)
 
@@ -76,7 +75,7 @@ func TestWalkDir_SiblingDirectories(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { os.Chdir(originalCwd) })
-	root := path.Join("..", "testdata", "terraform", "sibling-dir")
+	root := path.Join("..", "..", "testdata", "terraform", "sibling-dir")
 	os.Chdir(root)
 
 	expectedPaths := []string{
@@ -94,33 +93,33 @@ func TestWalkDir_SiblingDirectories(t *testing.T) {
 }
 
 func TestReadFile_Success(t *testing.T) {
-	path := path.Join("..", "testdata", "terraform", "single-dir", "pantalon.yaml")
+	path := path.Join("..", "..", "testdata", "terraform", "single-dir", "pantalon.yaml")
 
 	cfg, err := readFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, "pantalon.kallan.dev/v1alpha1", cfg.ApiVersion)
+	assert.Equal(t, "pantalon.kallan.dev/v1alpha1", cfg.APIVersion)
 	assert.Equal(t, "TerraformConfiguration", cfg.Kind)
 	assert.Equal(t, "single-dir", cfg.Metadata.Name)
 }
 
-// If a single valid file exists the readFile function should return a single api.TerraformConfiguration.
+// If a single valid file exists the readFile function should return a single TerraformConfiguration.
 func TestSearch_Success(t *testing.T) {
 	originalCwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { os.Chdir(originalCwd) })
-	root := path.Join("..", "testdata", "terraform", "single-dir")
+	root := path.Join("..", "..", "testdata", "terraform", "single-dir")
 	os.Chdir(root)
 
-	expected := []api.TerraformConfiguration{
+	expected := []TerraformConfiguration{
 		{
-			ApiVersion: "pantalon.kallan.dev/v1alpha1",
+			APIVersion: "pantalon.kallan.dev/v1alpha1",
 			Kind:       "TerraformConfiguration",
-			Metadata: api.Metadata{
+			Metadata: Metadata{
 				Name: "single-dir",
 			},
 			Path: path.Join("pantalon.yaml"),
@@ -135,37 +134,37 @@ func TestSearch_Success(t *testing.T) {
 	assert.Equal(t, expected, result)
 }
 
-// If multiple valid files exist in the path the Search function should return all of them as api.TerraformConfiguration.
+// If multiple valid files exist in the path the Search function should return all of them as TerraformConfiguration.
 func TestSearch_MultipleFiles(t *testing.T) {
 	originalCwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { os.Chdir(originalCwd) })
-	root := path.Join("..", "testdata", "terraform", "sibling-dir")
+	root := path.Join("..", "..", "testdata", "terraform", "sibling-dir")
 	os.Chdir(root)
 
-	expected := []api.TerraformConfiguration{
+	expected := []TerraformConfiguration{
 		{
-			ApiVersion: "pantalon.kallan.dev/v1alpha1",
+			APIVersion: "pantalon.kallan.dev/v1alpha1",
 			Kind:       "TerraformConfiguration",
-			Metadata: api.Metadata{
+			Metadata: Metadata{
 				Name: "sibling-dir-a",
 			},
 			Path: path.Join("a", "pantalon.yaml"),
 		},
 		{
-			ApiVersion: "pantalon.kallan.dev/v1alpha1",
+			APIVersion: "pantalon.kallan.dev/v1alpha1",
 			Kind:       "TerraformConfiguration",
-			Metadata: api.Metadata{
+			Metadata: Metadata{
 				Name: "sibling-dir-b",
 			},
 			Path: path.Join("b", "pantalon.yaml"),
 		},
 		{
-			ApiVersion: "pantalon.kallan.dev/v1alpha1",
+			APIVersion: "pantalon.kallan.dev/v1alpha1",
 			Kind:       "TerraformConfiguration",
-			Metadata: api.Metadata{
+			Metadata: Metadata{
 				Name: "sibling-dir-c",
 			},
 			Path: path.Join("c", "pantalon.yaml"),
@@ -187,7 +186,7 @@ func TestSearch_NoFilesFound(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { os.Chdir(originalCwd) })
-	root := path.Join("..", "testdata", "terraform", "empty-dir")
+	root := path.Join("..", "..", "testdata", "terraform", "empty-dir")
 	os.Chdir(root)
 
 	result, err := Search()

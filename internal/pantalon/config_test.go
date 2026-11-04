@@ -1,4 +1,4 @@
-package api
+package pantalon
 
 import (
 	"testing"
@@ -33,7 +33,7 @@ func TestUnmarshalTerraformConfiguration_ApiVersionKindMatch(t *testing.T) {
 	}
 
 	assert.Equal(t, TerraformKind, v.Kind)
-	assert.Equal(t, PantalonVersion, v.ApiVersion)
+	assert.Equal(t, PantalonVersion, v.APIVersion)
 }
 
 func TestUnmarshalTerraformConfiguration_WithContext(t *testing.T) {

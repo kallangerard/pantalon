@@ -1,4 +1,4 @@
-package api
+package pantalon
 
 import (
 	"fmt"
@@ -163,4 +163,15 @@ func (r requirement) matches(labels map[string]string) bool {
 		return !ok
 	}
 	return false
+}
+
+// SelectorFilter returns items whose labels satisfy the selector.
+func SelectorFilter(items []ConfigurationItem, sel Selector) []ConfigurationItem {
+	filtered := make([]ConfigurationItem, 0)
+	for _, item := range items {
+		if sel.Matches(item.Labels) {
+			filtered = append(filtered, item)
+		}
+	}
+	return filtered
 }

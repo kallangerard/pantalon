@@ -10,8 +10,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 
-	"github.com/kallangerard/pantalon/api"
-	"github.com/kallangerard/pantalon/file"
+	"github.com/kallangerard/pantalon/internal/pantalon"
 )
 
 // pathGlobs implements flag.Value for a repeatable --path-glob flag.
@@ -86,12 +85,12 @@ func main() {
 		os.Exit(0)
 	}
 
-	configurations, err := file.Search()
+	configurations, err := pantalon.Search()
 	if err != nil {
 		log.Fatalf("Error listing configurations: %v", err)
 	}
 
-	unfilteredItems, err := api.MarshalItems(configurations)
+	unfilteredItems, err := pantalon.MarshalItems(configurations)
 	if err != nil {
 		log.Fatalf("Error marshaling items: %v", err)
 	}
@@ -111,15 +110,15 @@ func main() {
 	}
 }
 
-func filterItems(unfilteredItems []api.ConfigurationItem, changedDirsJson string, globs []string, selector string) ([]api.ConfigurationItem, error) {
-	var items []api.ConfigurationItem
+func filterItems(unfilteredItems []pantalon.ConfigurationItem, changedDirsJson string, globs []string, selector string) ([]pantalon.ConfigurationItem, error) {
+	var items []pantalon.ConfigurationItem
 
 	if changedDirsJson != "" {
-		changedDirs, err := api.UnmarshalChangedFileJson([]byte(changedDirsJson))
+		changedDirs, err := pantalon.ParseChangedDirs([]byte(changedDirsJson))
 		if err != nil {
 			return nil, fmt.Errorf("error unmarshaling changed dirs: %w", err)
 		}
-		items, err = file.ChangedFiles(unfilteredItems, changedDirs)
+		items, err = pantalon.ChangedFiles(unfilteredItems, changedDirs)
 		if err != nil {
 			return nil, fmt.Errorf("error filtering changed files: %w", err)
 		}
@@ -129,24 +128,24 @@ func filterItems(unfilteredItems []api.ConfigurationItem, changedDirsJson string
 
 	if len(globs) > 0 {
 		var err error
-		items, err = file.GlobFilter(items, globs)
+		items, err = pantalon.GlobFilter(items, globs)
 		if err != nil {
 			return nil, fmt.Errorf("error filtering by path glob: %w", err)
 		}
 	}
 
 	if selector != "" {
-		sel, err := api.ParseSelector(selector)
+		sel, err := pantalon.ParseSelector(selector)
 		if err != nil {
 			return nil, err
 		}
-		items = file.SelectorFilter(items, sel)
+		items = pantalon.SelectorFilter(items, sel)
 	}
 
 	return items, nil
 }
 
-func outputJson(configurations []api.ConfigurationItem) {
+func outputJson(configurations []pantalon.ConfigurationItem) {
 	data, err := yaml.MarshalWithOptions(configurations,
 		yaml.JSON(),
 	)
@@ -156,7 +155,7 @@ func outputJson(configurations []api.ConfigurationItem) {
 	fmt.Println(string(data))
 }
 
-func outputYaml(configurations []api.ConfigurationItem) {
+func outputYaml(configurations []pantalon.ConfigurationItem) {
 	data, err := yaml.Marshal(configurations)
 	if err != nil {
 		log.Fatalf("Error marshaling yaml: %v", err)

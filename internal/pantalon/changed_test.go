@@ -1,21 +1,70 @@
-package file
+package pantalon
 
 import (
 	"testing"
 
-	"github.com/kallangerard/pantalon/api"
 	"github.com/stretchr/testify/assert"
 )
 
+func TestParseChangedDirs_ReturnsArrayOfDirectoryPaths(t *testing.T) {
+	j := `[".", "foo", "foo/bar"]`
+
+	expectedPaths := []string{".", "foo", "foo/bar"}
+
+	actualPaths, err := ParseChangedDirs([]byte(j))
+	assert.NoError(t, err)
+
+	assert.Equal(t, expectedPaths, actualPaths)
+}
+
+// Equivalent spellings of a path must compare equal when matching, otherwise
+// configurations are silently skipped.
+func TestParseChangedDirs_NormalisesPaths(t *testing.T) {
+	j := `["a/dev/", "./a/dev", "a//dev", "", "./"]`
+
+	expectedPaths := []string{"a/dev", "a/dev", "a/dev", ".", "."}
+
+	actualPaths, err := ParseChangedDirs([]byte(j))
+	assert.NoError(t, err)
+
+	assert.Equal(t, expectedPaths, actualPaths)
+}
+
+// Directories whose names contain dots, such as .github, are common in
+// changed-files output and must be accepted.
+func TestParseChangedDirs_AcceptsDotDirectories(t *testing.T) {
+	j := `[".github", ".github/workflows", ".tflint.d", "env.v2"]`
+
+	expectedPaths := []string{".github", ".github/workflows", ".tflint.d", "env.v2"}
+
+	actualPaths, err := ParseChangedDirs([]byte(j))
+	assert.NoError(t, err)
+
+	assert.Equal(t, expectedPaths, actualPaths)
+}
+
+// Paths outside the repository root can never match a configuration, so they
+// are rejected rather than silently ignored.
+func TestParseChangedDirs_RejectsPathsOutsideRepo(t *testing.T) {
+	j := `["/home/runner/work/a/dev", "../a/dev", "..", "a/../../b"]`
+
+	actualPaths, err := ParseChangedDirs([]byte(j))
+	assert.ErrorContains(t, err, "/home/runner/work/a/dev: "+ErrChangedDirOutsideRepo.Error())
+	assert.ErrorContains(t, err, "../a/dev: "+ErrChangedDirOutsideRepo.Error())
+	assert.ErrorContains(t, err, "..: "+ErrChangedDirOutsideRepo.Error())
+	assert.ErrorContains(t, err, "a/../../b: "+ErrChangedDirOutsideRepo.Error())
+	assert.Nil(t, actualPaths, "actualPaths should be nil")
+}
+
 func TestChangedDirs_SimpleDir(t *testing.T) {
-	cfgs := []api.TerraformConfiguration{
+	cfgs := []TerraformConfiguration{
 		{
-			Metadata: api.Metadata{Name: "item1"},
+			Metadata: Metadata{Name: "item1"},
 			Path:     "a/pantalon.yaml",
 		},
 	}
 
-	expectedFilteredCfgs := []api.ConfigurationItem{
+	expectedFilteredCfgs := []ConfigurationItem{
 		{
 			Name: "item1",
 			Path: "a/pantalon.yaml",
@@ -25,12 +74,12 @@ func TestChangedDirs_SimpleDir(t *testing.T) {
 
 	changedFilesJson := []byte(`["a"]`)
 
-	items, err := api.MarshalItems(cfgs)
+	items, err := MarshalItems(cfgs)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	changedDirs, err := api.UnmarshalChangedFileJson(changedFilesJson)
+	changedDirs, err := ParseChangedDirs(changedFilesJson)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,23 +94,23 @@ func TestChangedDirs_SimpleDir(t *testing.T) {
 
 func TestChangedDirs_NoChanges(t *testing.T) {
 
-	cfgs := []api.TerraformConfiguration{
+	cfgs := []TerraformConfiguration{
 		{
-			Metadata: api.Metadata{Name: "item1"},
+			Metadata: Metadata{Name: "item1"},
 			Path:     "a/pantalon.yaml",
 		},
 	}
 
-	expectedFilteredCfgs := []api.ConfigurationItem{}
+	expectedFilteredCfgs := []ConfigurationItem{}
 
 	changedFilesJson := []byte(`[]`)
 
-	items, err := api.MarshalItems(cfgs)
+	items, err := MarshalItems(cfgs)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	changedDirs, err := api.UnmarshalChangedFileJson(changedFilesJson)
+	changedDirs, err := ParseChangedDirs(changedFilesJson)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,23 +125,23 @@ func TestChangedDirs_NoChanges(t *testing.T) {
 
 func TestChangedDirs_UnrelatedChange(t *testing.T) {
 
-	cfgs := []api.TerraformConfiguration{
+	cfgs := []TerraformConfiguration{
 		{
-			Metadata: api.Metadata{Name: "item1"},
+			Metadata: Metadata{Name: "item1"},
 			Path:     "path/a/pantalon.yaml",
 		},
 	}
 
-	expectedFilteredCfgs := []api.ConfigurationItem{}
+	expectedFilteredCfgs := []ConfigurationItem{}
 
 	changedFilesJson := []byte(`["path/b"]`)
 
-	items, err := api.MarshalItems(cfgs)
+	items, err := MarshalItems(cfgs)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	changedDirs, err := api.UnmarshalChangedFileJson(changedFilesJson)
+	changedDirs, err := ParseChangedDirs(changedFilesJson)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,14 +156,14 @@ func TestChangedDirs_UnrelatedChange(t *testing.T) {
 
 func TestChangedDirs_HandleRootDir(t *testing.T) {
 
-	cfgs := []api.TerraformConfiguration{
+	cfgs := []TerraformConfiguration{
 		{
-			Metadata: api.Metadata{Name: "item1"},
+			Metadata: Metadata{Name: "item1"},
 			Path:     "a/pantalon.yaml",
 		},
 	}
 
-	expectedFilteredCfgs := []api.ConfigurationItem{
+	expectedFilteredCfgs := []ConfigurationItem{
 		{
 			Name: "item1",
 			Path: "a/pantalon.yaml",
@@ -124,12 +173,12 @@ func TestChangedDirs_HandleRootDir(t *testing.T) {
 
 	changedFilesJson := []byte(`["."]`)
 
-	items, err := api.MarshalItems(cfgs)
+	items, err := MarshalItems(cfgs)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	changedDirs, err := api.UnmarshalChangedFileJson(changedFilesJson)
+	changedDirs, err := ParseChangedDirs(changedFilesJson)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,14 +193,14 @@ func TestChangedDirs_HandleRootDir(t *testing.T) {
 
 func TestChangedDirs_NestedPantalonFile(t *testing.T) {
 
-	cfgs := []api.TerraformConfiguration{
+	cfgs := []TerraformConfiguration{
 		{
-			Metadata: api.Metadata{Name: "item1"},
+			Metadata: Metadata{Name: "item1"},
 			Path:     "a/b/c/pantalon.yaml",
 		},
 	}
 
-	expectedFilteredCfgs := []api.ConfigurationItem{
+	expectedFilteredCfgs := []ConfigurationItem{
 		{
 			Name: "item1",
 			Path: "a/b/c/pantalon.yaml",
@@ -161,12 +210,12 @@ func TestChangedDirs_NestedPantalonFile(t *testing.T) {
 
 	changedFilesJson := []byte(`["a/b"]`)
 
-	items, err := api.MarshalItems(cfgs)
+	items, err := MarshalItems(cfgs)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	changedDirs, err := api.UnmarshalChangedFileJson(changedFilesJson)
+	changedDirs, err := ParseChangedDirs(changedFilesJson)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,22 +230,22 @@ func TestChangedDirs_NestedPantalonFile(t *testing.T) {
 
 func TestChangedDirs_Mixed(t *testing.T) {
 
-	cfgs := []api.TerraformConfiguration{
+	cfgs := []TerraformConfiguration{
 		{
-			Metadata: api.Metadata{Name: "item1"},
+			Metadata: Metadata{Name: "item1"},
 			Path:     "a/b/1/pantalon.yaml",
 		},
 		{
-			Metadata: api.Metadata{Name: "item2"},
+			Metadata: Metadata{Name: "item2"},
 			Path:     "a/b/2/pantalon.yaml",
 		},
 		{
-			Metadata: api.Metadata{Name: "item3"},
+			Metadata: Metadata{Name: "item3"},
 			Path:     "a/b/3/pantalon.yaml",
 		},
 	}
 
-	expectedFilteredCfgs := []api.ConfigurationItem{
+	expectedFilteredCfgs := []ConfigurationItem{
 		{
 			Name: "item1",
 			Path: "a/b/1/pantalon.yaml",
@@ -211,12 +260,12 @@ func TestChangedDirs_Mixed(t *testing.T) {
 
 	changedFilesJson := []byte(`["a/b/1","a/b/2"]`)
 
-	items, err := api.MarshalItems(cfgs)
+	items, err := MarshalItems(cfgs)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	changedDirs, err := api.UnmarshalChangedFileJson(changedFilesJson)
+	changedDirs, err := ParseChangedDirs(changedFilesJson)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -234,14 +283,14 @@ func TestChangedDirs_Mixed(t *testing.T) {
 // pantalon.yaml is emitted multiple times, producing duplicate matrix jobs.
 func TestChangedDirs_MultipleChangedDirsWithinSameConfig(t *testing.T) {
 
-	cfgs := []api.TerraformConfiguration{
+	cfgs := []TerraformConfiguration{
 		{
-			Metadata: api.Metadata{Name: "item1"},
+			Metadata: Metadata{Name: "item1"},
 			Path:     "a/b/1/pantalon.yaml",
 		},
 	}
 
-	expectedFilteredCfgs := []api.ConfigurationItem{
+	expectedFilteredCfgs := []ConfigurationItem{
 		{
 			Name: "item1",
 			Path: "a/b/1/pantalon.yaml",
@@ -254,12 +303,12 @@ func TestChangedDirs_MultipleChangedDirsWithinSameConfig(t *testing.T) {
 	// entries in changed-dirs that both match a/b/1.
 	changedFilesJson := []byte(`["a/b/1/modules/foo", "a/b/1/modules/bar"]`)
 
-	items, err := api.MarshalItems(cfgs)
+	items, err := MarshalItems(cfgs)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	changedDirs, err := api.UnmarshalChangedFileJson(changedFilesJson)
+	changedDirs, err := ParseChangedDirs(changedFilesJson)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -275,14 +324,14 @@ func TestChangedDirs_MultipleChangedDirsWithinSameConfig(t *testing.T) {
 // If a directory changed is nested inside a Pantalon directory, the pantalon directory should be returned
 func TestChangedDirs_ChangedDirInsidePantalonCfg(t *testing.T) {
 
-	cfgs := []api.TerraformConfiguration{
+	cfgs := []TerraformConfiguration{
 		{
-			Metadata: api.Metadata{Name: "item1"},
+			Metadata: Metadata{Name: "item1"},
 			Path:     "a/b/1/pantalon.yaml",
 		},
 	}
 
-	expectedFilteredCfgs := []api.ConfigurationItem{
+	expectedFilteredCfgs := []ConfigurationItem{
 		{
 			Name: "item1",
 			Path: "a/b/1/pantalon.yaml",
@@ -292,12 +341,12 @@ func TestChangedDirs_ChangedDirInsidePantalonCfg(t *testing.T) {
 
 	changedFilesJson := []byte(`["a/b/1/modules/foo"]`)
 
-	items, err := api.MarshalItems(cfgs)
+	items, err := MarshalItems(cfgs)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	changedDirs, err := api.UnmarshalChangedFileJson(changedFilesJson)
+	changedDirs, err := ParseChangedDirs(changedFilesJson)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -335,14 +384,14 @@ func TestChangedDirs_SegmentBoundaries(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			items, err := api.MarshalItems([]api.TerraformConfiguration{
-				{Metadata: api.Metadata{Name: "item1"}, Path: tt.cfgPath},
+			items, err := MarshalItems([]TerraformConfiguration{
+				{Metadata: Metadata{Name: "item1"}, Path: tt.cfgPath},
 			})
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			changedDirs, err := api.UnmarshalChangedFileJson([]byte(`["` + tt.changedDir + `"]`))
+			changedDirs, err := ParseChangedDirs([]byte(`["` + tt.changedDir + `"]`))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -386,10 +435,10 @@ func TestChangedDirs_Dependencies(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			items, err := api.MarshalItems([]api.TerraformConfiguration{
+			items, err := MarshalItems([]TerraformConfiguration{
 				{
-					Metadata:     api.Metadata{Name: "item1"},
-					Dependencies: api.Dependencies{Paths: tt.deps},
+					Metadata:     Metadata{Name: "item1"},
+					Dependencies: Dependencies{Paths: tt.deps},
 					Path:         "env/dev/pantalon.yaml",
 				},
 			})
@@ -397,7 +446,7 @@ func TestChangedDirs_Dependencies(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			changedDirs, err := api.UnmarshalChangedFileJson([]byte(`["` + tt.changedDir + `"]`))
+			changedDirs, err := ParseChangedDirs([]byte(`["` + tt.changedDir + `"]`))
 			if err != nil {
 				t.Fatal(err)
 			}

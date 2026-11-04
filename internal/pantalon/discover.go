@@ -1,4 +1,4 @@
-package file
+package pantalon
 
 import (
 	"errors"
@@ -7,17 +7,15 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/kallangerard/pantalon/api"
 )
 
-func Search() ([]api.TerraformConfiguration, error) {
+func Search() ([]TerraformConfiguration, error) {
 	paths, err := findFiles()
 	if err != nil {
 		return nil, err
 	}
 
-	var result []api.TerraformConfiguration
+	var result []TerraformConfiguration
 	seen := make(map[string]string)
 	for _, path := range paths {
 		tfCfg, err := readFile(path)
@@ -71,22 +69,22 @@ func findFiles() ([]string, error) {
 	return result, nil
 }
 
-func readFile(path string) (api.TerraformConfiguration, error) {
+func readFile(path string) (TerraformConfiguration, error) {
 	file, err := os.ReadFile(path)
 	if err != nil {
-		return api.TerraformConfiguration{}, err
+		return TerraformConfiguration{}, err
 	}
 
-	warnings := api.Warnings(file)
+	warnings := Warnings(file)
 
-	tfCfg, err := api.Parse(file)
+	tfCfg, err := Parse(file)
 	if err != nil {
 		// A misspelt required field surfaces as a validation error, so name
 		// the likely cause.
 		if len(warnings) > 0 {
-			return api.TerraformConfiguration{}, fmt.Errorf("%w (%s)", err, joinWarnings(warnings))
+			return TerraformConfiguration{}, fmt.Errorf("%w (%s)", err, joinWarnings(warnings))
 		}
-		return api.TerraformConfiguration{}, err
+		return TerraformConfiguration{}, err
 	}
 
 	for _, w := range warnings {
@@ -100,7 +98,7 @@ func readFile(path string) (api.TerraformConfiguration, error) {
 	return tfCfg, nil
 }
 
-func joinWarnings(warnings []api.Warning) string {
+func joinWarnings(warnings []Warning) string {
 	msgs := make([]string, len(warnings))
 	for i, w := range warnings {
 		msgs[i] = fmt.Sprintf("line %d: %s", w.Line, w.Message)

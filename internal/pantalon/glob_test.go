@@ -1,14 +1,13 @@
-package file
+package pantalon
 
 import (
 	"testing"
 
-	"github.com/kallangerard/pantalon/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var globItems = []api.ConfigurationItem{
+var globItems = []ConfigurationItem{
 	{
 		Name: "compute-dev",
 		Path: "terraform/compute/environments/dev/pantalon.yaml",
@@ -34,19 +33,19 @@ var globItems = []api.ConfigurationItem{
 func TestGlobFilter_DoublestarRecursive(t *testing.T) {
 	result, err := GlobFilter(globItems, []string{"terraform/compute/**"})
 	require.NoError(t, err)
-	assert.Equal(t, []api.ConfigurationItem{globItems[0], globItems[1]}, result)
+	assert.Equal(t, []ConfigurationItem{globItems[0], globItems[1]}, result)
 }
 
 func TestGlobFilter_SingleSegmentWildcard(t *testing.T) {
 	result, err := GlobFilter(globItems, []string{"terraform/*/environments/dev"})
 	require.NoError(t, err)
-	assert.Equal(t, []api.ConfigurationItem{globItems[0], globItems[2]}, result)
+	assert.Equal(t, []ConfigurationItem{globItems[0], globItems[2]}, result)
 }
 
 func TestGlobFilter_MultiplePatterns_OR(t *testing.T) {
 	result, err := GlobFilter(globItems, []string{"terraform/compute/**", "terraform/network/environments/prod"})
 	require.NoError(t, err)
-	assert.Equal(t, []api.ConfigurationItem{globItems[0], globItems[1], globItems[3]}, result)
+	assert.Equal(t, []ConfigurationItem{globItems[0], globItems[1], globItems[3]}, result)
 }
 
 func TestGlobFilter_NoPatterns_ReturnsAll(t *testing.T) {
@@ -58,13 +57,13 @@ func TestGlobFilter_NoPatterns_ReturnsAll(t *testing.T) {
 func TestGlobFilter_NoMatch(t *testing.T) {
 	result, err := GlobFilter(globItems, []string{"terraform/storage/**"})
 	require.NoError(t, err)
-	assert.Equal(t, []api.ConfigurationItem{}, result)
+	assert.Equal(t, []ConfigurationItem{}, result)
 }
 
 func TestGlobFilter_ExactMatch(t *testing.T) {
 	result, err := GlobFilter(globItems, []string{"terraform/compute/environments/dev"})
 	require.NoError(t, err)
-	assert.Equal(t, []api.ConfigurationItem{globItems[0]}, result)
+	assert.Equal(t, []ConfigurationItem{globItems[0]}, result)
 }
 
 func TestGlobFilter_InvalidPattern(t *testing.T) {

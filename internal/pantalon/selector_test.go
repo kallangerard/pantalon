@@ -1,4 +1,4 @@
-package api
+package pantalon
 
 import (
 	"strings"
@@ -81,4 +81,20 @@ func TestParseSelector_Invalid(t *testing.T) {
 			assert.Error(t, err)
 		})
 	}
+}
+
+func TestSelectorFilter(t *testing.T) {
+	items := []ConfigurationItem{
+		{Name: "a", Labels: map[string]string{"env": "dev"}},
+		{Name: "b", Labels: map[string]string{"env": "prod"}},
+		{Name: "c"},
+	}
+
+	sel, err := ParseSelector("env=prod")
+	require.NoError(t, err)
+	assert.Equal(t, []ConfigurationItem{items[1]}, SelectorFilter(items, sel))
+
+	sel, err = ParseSelector("env!=prod")
+	require.NoError(t, err)
+	assert.Equal(t, []ConfigurationItem{items[0], items[2]}, SelectorFilter(items, sel))
 }
