@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.2](https://github.com/kallangerard/pantalon/compare/v0.5.1...v0.5.2) (2026-11-05)
+
+
+### Miscellaneous
+
+* **deps:** update goreleaser/goreleaser to v2.19.0 ([#111](https://github.com/kallangerard/pantalon/issues/111)) ([cef0069](https://github.com/kallangerard/pantalon/commit/cef0069ee055174c0ea1f1a81f820319c0c5b6b9))
+* **deps:** update goreleaser/goreleaser to v2.19.0 ([#118](https://github.com/kallangerard/pantalon/issues/118)) ([b409fc5](https://github.com/kallangerard/pantalon/commit/b409fc5e516904533757c5e6d7fcd57bee15080b))
+
 ## [0.5.1](https://github.com/kallangerard/pantalon/compare/v0.5.0...v0.5.1) (2026-11-04)
 
 
