@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.6.0](https://github.com/kallangerard/pantalon/compare/v0.5.1...v0.6.0) (2026-11-21)
+
+
+### Features
+
+* add --version flag ([#124](https://github.com/kallangerard/pantalon/issues/124)) ([d45cab0](https://github.com/kallangerard/pantalon/commit/d45cab0eba7ccec9d4ac7eaad93c89b543d6c9aa))
+
+
+### Bug Fixes
+
+* require label and context values to be YAML strings ([#121](https://github.com/kallangerard/pantalon/issues/121)) ([7818242](https://github.com/kallangerard/pantalon/commit/7818242e4b019598bef9fcbf4fc467ca0d51951f))
+* validate metadata.name as an RFC 1123 label (max 63 chars) ([#122](https://github.com/kallangerard/pantalon/issues/122)) ([ed5f1e5](https://github.com/kallangerard/pantalon/commit/ed5f1e5b41830d4d4718ff2f85419dd8f7a0a410))
+
+
+### Performance Improvements
+
+* skip .git and .terraform directories during discovery ([#125](https://github.com/kallangerard/pantalon/issues/125)) ([b7fd7e5](https://github.com/kallangerard/pantalon/commit/b7fd7e5fe00c72c614a82fb00a09ce1b0c60c14c))
+
+
+### Miscellaneous
+
+* **deps:** update goreleaser/goreleaser to v2.19.0 ([#111](https://github.com/kallangerard/pantalon/issues/111)) ([cef0069](https://github.com/kallangerard/pantalon/commit/cef0069ee055174c0ea1f1a81f820319c0c5b6b9))
+* **deps:** update goreleaser/goreleaser to v2.19.0 ([#118](https://github.com/kallangerard/pantalon/issues/118)) ([b409fc5](https://github.com/kallangerard/pantalon/commit/b409fc5e516904533757c5e6d7fcd57bee15080b))
+* **deps:** update goreleaser/goreleaser to v2.20.0 ([#119](https://github.com/kallangerard/pantalon/issues/119)) ([30b0deb](https://github.com/kallangerard/pantalon/commit/30b0deb7b09dfba0164d2211097e15758049e180))
+* **deps:** update goreleaser/goreleaser to v2.20.2 ([#120](https://github.com/kallangerard/pantalon/issues/120)) ([3731d37](https://github.com/kallangerard/pantalon/commit/3731d37ce609f02cd2058cd6d5a5dc14b521dafe))
+
 ## [0.5.1](https://github.com/kallangerard/pantalon/compare/v0.5.0...v0.5.1) (2026-11-04)
 
 
