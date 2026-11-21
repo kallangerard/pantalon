@@ -38,7 +38,7 @@ metadata:
     team: platform
 ```
 
-The `metadata.name` field is used to identify the configuration. It MUST be unique within the repository and a valid DNS label (lowercase `kebab-case`; uppercase is rejected, not converted). Pantalon fails if two configurations share a name.
+The `metadata.name` field is used to identify the configuration. It MUST be unique within the repository and a valid [RFC 1123 DNS label](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-label-names) (lowercase `kebab-case`, no dots, at most 63 characters; uppercase is rejected, not converted). Pantalon fails if two configurations share a name.
 
 The optional `metadata.labels` field is a map of key/value pairs used to select configurations, following [Kubernetes label syntax](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set): keys have an optional DNS-subdomain prefix and `/` followed by a name of up to 63 characters, and values are empty or up to 63 characters of alphanumerics, `-`, `_` and `.`. Labels are included in the output as `labels`.
 
