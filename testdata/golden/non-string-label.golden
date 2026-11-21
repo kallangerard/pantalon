@@ -1,0 +1,4 @@
+exit: 1
+--- stdout ---
+--- stderr ---
+Error listing configurations: a/pantalon.yaml: line 6: metadata.labels value for key "version" must be a string; quote it

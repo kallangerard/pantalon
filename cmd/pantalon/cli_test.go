@@ -128,6 +128,10 @@ context:
 		files: map[string]string{"a/pantalon.yaml": header + "metadata: {name: Not_Valid}\n"},
 	},
 	{
+		name:  "non-string-label",
+		files: map[string]string{"a/pantalon.yaml": header + "metadata:\n  name: a\n  labels:\n    version: 1.10\n"},
+	},
+	{
 		name:  "wrong-kind",
 		files: map[string]string{"a/pantalon.yaml": "apiVersion: pantalon.kallan.dev/v1alpha1\nkind: Other\nmetadata: {name: a}\n"},
 	},
