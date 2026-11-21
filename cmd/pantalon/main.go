@@ -11,6 +11,9 @@ import (
 	"github.com/kallangerard/pantalon/internal/pantalon"
 )
 
+// version is set at release time with -ldflags "-X main.version=...".
+var version = "dev"
+
 // errUsage means the flag package already reported the problem.
 var errUsage = errors.New("usage")
 
@@ -29,6 +32,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 	fs.SetOutput(stderr)
 	fs.Usage = usage(fs)
 	help := fs.Bool("help", false, "Show help")
+	showVersion := fs.Bool("version", false, "Print the version and exit")
 	outputFormat := fs.String("output-format", "json", "Output format: json or yaml")
 	changedDirs := fs.String("changed-dirs", "", `JSON array of changed directories; filters output to matching configs (e.g. '["terraform/compute/environments/dev"]')`)
 	var globs pathGlobs
@@ -46,6 +50,11 @@ func run(args []string, stdout, stderr io.Writer) error {
 	if *help {
 		fs.Usage()
 		return nil
+	}
+
+	if *showVersion {
+		_, err := fmt.Fprintf(stdout, "pantalon %s\n", version)
+		return err
 	}
 
 	configurations, warnings, err := pantalon.Discover(os.DirFS("."))

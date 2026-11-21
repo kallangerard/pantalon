@@ -1,0 +1,4 @@
+exit: 0
+--- stdout ---
+pantalon dev
+--- stderr ---

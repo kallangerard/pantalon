@@ -55,6 +55,7 @@ Flags:
 Examples:
   pantalon
   pantalon --output-format=yaml
+  pantalon --version
   pantalon --changed-dirs='["terraform/compute/environments/dev"]'
   pantalon --path-glob='terraform/compute/**'
   pantalon --path-glob='terraform/compute/**' --path-glob='terraform/data/**'
