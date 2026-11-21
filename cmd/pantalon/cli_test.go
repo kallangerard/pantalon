@@ -75,6 +75,7 @@ var cliCases = []cliCase{
 	{name: "unknown-flag", args: []string{"--nope"}},
 	{name: "help", args: []string{"--help"}},
 	{name: "help-short", args: []string{"-h"}},
+	{name: "version", args: []string{"--version"}},
 	{
 		name:  "no-configs",
 		files: map[string]string{"README.md": "hi\n"},
