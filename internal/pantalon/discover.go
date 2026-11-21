@@ -39,6 +39,11 @@ func Discover(fsys fs.FS) ([]TerraformConfiguration, []Warning, error) {
 	return result, warnings, nil
 }
 
+// skippedDirs are never searched: .git holds repository internals, and
+// .terraform holds downloaded copies of modules, which may include their own
+// pantalon.yaml but are never root modules of this repository.
+var skippedDirs = map[string]bool{".git": true, ".terraform": true}
+
 func findFiles(fsys fs.FS) ([]string, error) {
 	var result []string
 	err := fs.WalkDir(fsys, ".", func(p string, entry fs.DirEntry, err error) error {
@@ -47,6 +52,9 @@ func findFiles(fsys fs.FS) ([]string, error) {
 		}
 		if !entry.IsDir() {
 			return nil
+		}
+		if p != "." && skippedDirs[entry.Name()] {
+			return fs.SkipDir
 		}
 
 		pantalonPath := path.Join(p, "pantalon.yaml")

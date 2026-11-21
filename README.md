@@ -42,7 +42,7 @@ The `metadata.name` field is used to identify the configuration. It MUST be uniq
 
 The optional `metadata.labels` field is a map of key/value pairs used to select configurations, following [Kubernetes label syntax](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set): keys have an optional DNS-subdomain prefix and `/` followed by a name of up to 63 characters, and values are empty or up to 63 characters of alphanumerics, `-`, `_` and `.`. Labels are included in the output as `labels`.
 
-The filename must strictly be `pantalon.yaml`. `pantalon.yml` or `pantalon.json` is not supported.
+The filename must strictly be `pantalon.yaml`. `pantalon.yml` or `pantalon.json` is not supported. Files inside `.git` and `.terraform` directories are ignored.
 
 The file must be plain, explicit YAML: anchors (`&a`), aliases (`*a`) and merge keys (`<<`) are rejected with an error naming the file and line.
 
