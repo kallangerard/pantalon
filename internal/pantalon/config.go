@@ -69,7 +69,9 @@ func Parse(yamlDoc []byte) (TerraformConfiguration, []Warning, error) {
 
 	err := yaml.Unmarshal(yamlDoc, &cfg)
 	if err == nil {
-		useLiteralScalars(yamlDoc, &cfg)
+		err = rejectNonStringValues(yamlDoc)
+	}
+	if err == nil {
 		err = validateTerraform(cfg)
 	}
 	if err != nil {
@@ -119,32 +121,30 @@ func (v *anchorFinder) Visit(n ast.Node) ast.Visitor {
 	return v
 }
 
-// useLiteralScalars sets unquoted number and boolean values in
-// metadata.labels and context to their text as written. Labels and context
-// are always strings, but the decoder parses such values first, so 1.10 would
-// otherwise become "1.1" and 0x1F "31".
-func useLiteralScalars(yamlDoc []byte, cfg *TerraformConfiguration) {
+// rejectNonStringValues fails when a metadata.labels or context value is not
+// a YAML string, as Kubernetes does for labels and annotations. Otherwise the
+// parser would silently convert it, turning an unquoted 1.10 into "1.1".
+func rejectNonStringValues(yamlDoc []byte) error {
 	f, err := parser.ParseBytes(yamlDoc, 0)
 	if err != nil || len(f.Docs) == 0 {
-		return
+		return nil // Parse reports syntax errors
 	}
 	root := mappingValues(f.Docs[0].Body)
+	maps := map[string]ast.Node{"context": field(root, "context")}
 	if md := field(root, "metadata"); md != nil {
-		setLiterals(field(mappingValues(md), "labels"), cfg.Metadata.Labels)
+		maps["metadata.labels"] = field(mappingValues(md), "labels")
 	}
-	setLiterals(field(root, "context"), cfg.Context)
-}
-
-func setLiterals(node ast.Node, m map[string]string) {
-	if m == nil {
-		return
-	}
-	for _, v := range mappingValues(node) {
-		switch v.Value.(type) {
-		case *ast.IntegerNode, *ast.FloatNode, *ast.BoolNode, *ast.InfinityNode, *ast.NanNode:
-			m[v.Key.GetToken().Value] = v.Value.GetToken().Value
+	for _, name := range []string{"metadata.labels", "context"} {
+		for _, v := range mappingValues(maps[name]) {
+			switch v.Value.(type) {
+			case *ast.StringNode, *ast.LiteralNode:
+				continue
+			}
+			tk := v.Key.GetToken()
+			return fmt.Errorf("line %d: %s value for key %q must be a string; quote it", tk.Position.Line, name, tk.Value)
 		}
 	}
+	return nil
 }
 
 // mappingValues returns the entries of a YAML mapping node, or nil if node

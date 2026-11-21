@@ -1,5 +1,0 @@
-exit: 0
---- stdout ---
-[{"name": "a", "path": "a/pantalon.yaml", "dir": "a", "labels": {"version": "1.10"}, "context": {}}]
-
---- stderr ---

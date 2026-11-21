@@ -36,7 +36,7 @@ go build ./cmd/pantalon/
 - **`metadata.labels`** — optional Kubernetes-style labels (same key/value rules), emitted as `labels` and matched by `--selector`/`-l`.
 - **`dependencies.paths`** — optional GitHub-Actions-style glob patterns (root-relative, `!` negation, last match wins) for directories outside the config's own dir; a changed dir matching them also selects the config under `--changed-dirs`.
 - **`context`** — arbitrary key/value map for metadata like GCP service accounts, passed through to output.
-- Label and context values are always strings. Unquoted numbers and booleans keep their source text (`1.10` stays `"1.10"`), taken from the YAML AST after decoding (`useLiteralScalars`).
+- Label and context values must be YAML strings (`StringNode`/`LiteralNode`), like Kubernetes labels/annotations; unquoted numbers, booleans and nulls are rejected rather than coerced.
 - The tool always runs from the **repository root** via `Discover(os.DirFS("."))`.
 - When `--changed-dirs` is supplied, output is filtered to configurations whose directory contains (or is contained by) a changed directory, or whose `dependencies.paths` match one.
 

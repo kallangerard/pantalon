@@ -42,7 +42,7 @@ The `metadata.name` field is used to identify the configuration. It MUST be uniq
 
 The optional `metadata.labels` field is a map of key/value pairs used to select configurations, following [Kubernetes label syntax](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set): keys have an optional DNS-subdomain prefix and `/` followed by a name of up to 63 characters, and values are empty or up to 63 characters of alphanumerics, `-`, `_` and `.`. Labels are included in the output as `labels`.
 
-Label and `context` values are always strings. Unquoted numbers and booleans are accepted and kept exactly as written, so `version: 1.10` is `"1.10"` and `mask: 0x1F` is `"0x1F"`. An empty or null value is `""`.
+Label and `context` values must be YAML strings, as with Kubernetes labels and annotations. Quote values that YAML would otherwise read as a number, boolean or null (`version: "1.10"`, `enabled: "true"`); unquoted, they are rejected with an error naming the file and line.
 
 The filename must strictly be `pantalon.yaml`. `pantalon.yml` or `pantalon.json` is not supported.
 
