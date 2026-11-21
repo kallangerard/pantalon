@@ -69,6 +69,9 @@ func Parse(yamlDoc []byte) (TerraformConfiguration, []Warning, error) {
 
 	err := yaml.Unmarshal(yamlDoc, &cfg)
 	if err == nil {
+		err = rejectNonStringValues(yamlDoc)
+	}
+	if err == nil {
 		err = validateTerraform(cfg)
 	}
 	if err != nil {
@@ -116,6 +119,54 @@ func (v *anchorFinder) Visit(n ast.Node) ast.Visitor {
 		return nil
 	}
 	return v
+}
+
+// rejectNonStringValues fails when a metadata.labels or context value is not
+// a YAML string, as Kubernetes does for labels and annotations. Otherwise the
+// parser would silently convert it, turning an unquoted 1.10 into "1.1".
+func rejectNonStringValues(yamlDoc []byte) error {
+	f, err := parser.ParseBytes(yamlDoc, 0)
+	if err != nil || len(f.Docs) == 0 {
+		return nil // Parse reports syntax errors
+	}
+	root := mappingValues(f.Docs[0].Body)
+	maps := map[string]ast.Node{"context": field(root, "context")}
+	if md := field(root, "metadata"); md != nil {
+		maps["metadata.labels"] = field(mappingValues(md), "labels")
+	}
+	for _, name := range []string{"metadata.labels", "context"} {
+		for _, v := range mappingValues(maps[name]) {
+			switch v.Value.(type) {
+			case *ast.StringNode, *ast.LiteralNode:
+				continue
+			}
+			tk := v.Key.GetToken()
+			return fmt.Errorf("line %d: %s value for key %q must be a string; quote it", tk.Position.Line, name, tk.Value)
+		}
+	}
+	return nil
+}
+
+// mappingValues returns the entries of a YAML mapping node, or nil if node
+// is not a mapping.
+func mappingValues(node ast.Node) []*ast.MappingValueNode {
+	switch n := node.(type) {
+	case *ast.MappingNode:
+		return n.Values
+	case *ast.MappingValueNode:
+		return []*ast.MappingValueNode{n}
+	}
+	return nil
+}
+
+// field returns the value of key among values, or nil.
+func field(values []*ast.MappingValueNode, key string) ast.Node {
+	for _, v := range values {
+		if v.Key.GetToken().Value == key {
+			return v.Value
+		}
+	}
+	return nil
 }
 
 // Warning is a problem in a pantalon.yaml that doesn't stop it being read.
