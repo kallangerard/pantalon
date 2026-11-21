@@ -44,7 +44,7 @@ The optional `metadata.labels` field is a map of key/value pairs used to select 
 
 Label and `context` values must be YAML strings, as with Kubernetes labels and annotations. Quote values that YAML would otherwise read as a number, boolean or null (`version: "1.10"`, `enabled: "true"`); unquoted, they are rejected with an error naming the file and line.
 
-The filename must strictly be `pantalon.yaml`. `pantalon.yml` or `pantalon.json` is not supported.
+The filename must strictly be `pantalon.yaml`. `pantalon.yml` or `pantalon.json` is not supported. Files inside `.git` and `.terraform` directories are ignored.
 
 The file must be plain, explicit YAML: anchors (`&a`), aliases (`*a`) and merge keys (`<<`) are rejected with an error naming the file and line.
 

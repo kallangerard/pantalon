@@ -56,6 +56,25 @@ func TestWalkDir_SiblingDirectories(t *testing.T) {
 	assert.Equal(t, expectedPaths, paths)
 }
 
+func TestFindFiles_SkipsGitAndTerraformDirs(t *testing.T) {
+	marker := &fstest.MapFile{Data: []byte("x")}
+	fsys := fstest.MapFS{
+		"a/pantalon.yaml":                        marker,
+		".git/pantalon.yaml":                     marker,
+		".git/refs/pantalon.yaml":                marker,
+		".terraform/modules/vpc/pantalon.yaml":   marker,
+		"modules/vpc/.terraform/x/pantalon.yaml": marker,
+		"infra/.git/pantalon.yaml":               marker,
+		".other/pantalon.yaml":                   marker, // other dot dirs are still searched
+		"tools/.terraform.d/pantalon.yaml":       marker, // only exact names are skipped
+	}
+
+	paths, err := findFiles(fsys)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{".other/pantalon.yaml", "a/pantalon.yaml", "tools/.terraform.d/pantalon.yaml"}, paths)
+}
+
 // If a single valid file exists the Discover function should return a single TerraformConfiguration.
 func TestDiscover_Success(t *testing.T) {
 	root := path.Join("..", "..", "testdata", "terraform", "single-dir")

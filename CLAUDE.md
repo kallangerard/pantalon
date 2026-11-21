@@ -42,7 +42,7 @@ go build ./cmd/pantalon/
 
 ## Architecture
 
-- `Discover(fs.FS)` walks the filesystem looking for `pantalon.yaml` files, stopping descent into a directory once a match is found (`fs.SkipDir`).
+- `Discover(fs.FS)` walks the filesystem looking for `pantalon.yaml` files, stopping descent into a directory once a match is found (`fs.SkipDir`). `.git` and `.terraform` directories are never searched.
 - `MarshalItems()` converts `[]TerraformConfiguration` into the flat `[]ConfigurationItem` output struct.
 - `Filter(items, FilterOptions)` is the single filtering entry point: `ParseChangedDirs` + `ChangedFiles` (changed dirs), `GlobFilter`, then `ParseSelector` + `SelectorFilter` (kubectl-style selector: `=`, `==`, `!=`, `in`, `notin`, `key`, `!key`, comma = AND).
 - `Write(w, items, format)` renders JSON or YAML.
