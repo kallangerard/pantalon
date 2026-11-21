@@ -24,8 +24,21 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Pantalon
+        env:
+          # Pin both the release and its checksum. The SHA-256 is from that
+          # release's checksums.txt; keeping it here means a tampered release
+          # asset fails the job instead of running in your pipeline.
+          PANTALON_VERSION: v0.5.1
+          PANTALON_SHA256: 99b6463ec85083b7b0475a6542993e20a740a0a738111d42ddca371dcc026ccc # pantalon-linux-amd64.tar.gz
         run: |
-          echo "TODO:"
+          dir="$RUNNER_TEMP/pantalon"
+          mkdir -p "$dir"
+          cd "$dir"
+          curl -fsSL -o pantalon.tar.gz \
+            "https://github.com/kallangerard/pantalon/releases/download/${PANTALON_VERSION}/pantalon-linux-amd64.tar.gz"
+          echo "${PANTALON_SHA256}  pantalon.tar.gz" | sha256sum --check --strict
+          tar -xzf pantalon.tar.gz pantalon
+          echo "$dir" >> "$GITHUB_PATH"
 
       - name: Get Pantalon Configs
         id: pantalon
