@@ -128,7 +128,7 @@ context:
 		files: map[string]string{"a/pantalon.yaml": header + "metadata: {name: Not_Valid}\n"},
 	},
 	{
-		name:  "non-string-label",
+		name:  "unquoted-label-value",
 		files: map[string]string{"a/pantalon.yaml": header + "metadata:\n  name: a\n  labels:\n    version: 1.10\n"},
 	},
 	{

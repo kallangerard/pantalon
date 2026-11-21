@@ -5,6 +5,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -61,24 +62,48 @@ context:
 	assert.Equal(t, "multi\n", tfCfg.Context["qux"])
 }
 
-// Like Kubernetes labels and annotations, values must be YAML strings, so an
-// unquoted 1.10 fails instead of silently becoming "1.1".
-func TestUnmarshalTerraformConfiguration_RejectsNonStringValues(t *testing.T) {
-	for name, tc := range map[string]struct{ yaml, wantErr string }{
-		"label integer":    {"  labels:\n    tier: 1\n", `line 8: metadata.labels value for key "tier" must be a string; quote it`},
-		"label float":      {"  labels:\n    version: 1.10\n", `line 8: metadata.labels value for key "version" must be a string; quote it`},
-		"label bool":       {"  labels:\n    env: prod\n    legacy: true\n", `line 9: metadata.labels value for key "legacy" must be a string; quote it`},
-		"label null":       {"  labels:\n    env:\n", `line 8: metadata.labels value for key "env" must be a string; quote it`},
-		"label flow style": {"  labels: {tier: 1}\n", `line 7: metadata.labels value for key "tier" must be a string; quote it`},
-		"context integer":  {"context:\n  project-number: 123\n", `line 8: context value for key "project-number" must be a string; quote it`},
-		"context bool":     {"context:\n  enabled: false\n", `line 8: context value for key "enabled" must be a string; quote it`},
-		"context null":     {"context:\n  sa: ~\n", `line 8: context value for key "sa" must be a string; quote it`},
-	} {
-		t.Run(name, func(t *testing.T) {
-			_, _, err := Parse([]byte(minimalYamlDoc + tc.yaml))
-			assert.EqualError(t, err, tc.wantErr)
-		})
-	}
+// Labels and context are always strings. Unquoted numbers and booleans are
+// accepted and kept exactly as written, not as the decoder would format them.
+func TestUnmarshalTerraformConfiguration_UnquotedScalarsKeepTheirText(t *testing.T) {
+	yamlDoc := minimalYamlDoc + `  labels:
+    version: 1.10
+    tier: 007
+    legacy: true
+    empty: ""
+context:
+  project-number: 0123
+  mask: 0x1F
+  big: 1_000
+  negative: -1
+  ratio: .inf
+  enabled: false
+  quoted: "1.10"
+  unset:
+`
+	cfg, _, err := Parse([]byte(yamlDoc))
+	require.NoError(t, err)
+	assert.Equal(t, map[string]string{
+		"version": "1.10",
+		"tier":    "007",
+		"legacy":  "true",
+		"empty":   "",
+	}, cfg.Metadata.Labels)
+	assert.Equal(t, map[string]string{
+		"project-number": "0123",
+		"mask":           "0x1F",
+		"big":            "1_000",
+		"negative":       "-1",
+		"ratio":          ".inf",
+		"enabled":        "false",
+		"quoted":         "1.10",
+		"unset":          "",
+	}, cfg.Context)
+}
+
+// The literal text is validated, so an unquoted value can still be an invalid label value.
+func TestUnmarshalTerraformConfiguration_UnquotedLabelValueIsValidated(t *testing.T) {
+	_, _, err := Parse([]byte(minimalYamlDoc + "  labels:\n    neg: -1\n"))
+	assert.EqualError(t, err, `invalid metadata.labels value "-1" for key "neg"`)
 }
 
 func TestUnmarshalTerraformConfiguration_ApiVersionMissing(t *testing.T) {
