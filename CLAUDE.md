@@ -31,7 +31,7 @@ go build ./cmd/pantalon/
 ## Key Concepts
 
 - **`pantalon.yaml`** — marker file placed in each Terraform root module. Must use `apiVersion: pantalon.kallan.dev/v1alpha1` and `kind: TerraformConfiguration`.
-- **`metadata.name`** — must be a valid RFC 1123 DNS subdomain label (lowercase alphanumeric and hyphens, max 253 chars). Must be unique (case-insensitively) across the repository; `Discover` fails on duplicates before any filtering.
+- **`metadata.name`** — must be a valid RFC 1123 DNS label (lowercase alphanumeric and hyphens, no dots, max 63 chars). Must be unique (case-insensitively) across the repository; `Discover` fails on duplicates before any filtering.
 - Unknown fields warn on stderr (as `::warning` annotations under GitHub Actions) instead of failing, so older binaries can read newer configs. `Parse` returns them as `[]Warning`; `main` renders them.
 - **`metadata.labels`** — optional Kubernetes-style labels (same key/value rules), emitted as `labels` and matched by `--selector`/`-l`.
 - **`dependencies.paths`** — optional GitHub-Actions-style glob patterns (root-relative, `!` negation, last match wins) for directories outside the config's own dir; a changed dir matching them also selects the config under `--changed-dirs`.

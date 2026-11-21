@@ -190,7 +190,7 @@ func validateTerraform(cfg TerraformConfiguration) error {
 		return errors.New("invalid kind")
 	}
 
-	if !isValidSubdomainLabel(cfg.Metadata.Name) {
+	if !isValidDNSLabel(cfg.Metadata.Name) {
 		return fmt.Errorf("invalid metadata.name %q", cfg.Metadata.Name)
 	}
 
@@ -251,21 +251,14 @@ func MarshalItems(cfgs []TerraformConfiguration) ([]ConfigurationItem, error) {
 	return items, nil
 }
 
-// Must comply with RFC 1123 subdomain labels
+var dnsLabelRegexp = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`)
+
+// isValidDNSLabel reports whether s is an RFC 1123 label: at most 63
+// lowercase alphanumerics or "-", starting and ending with an alphanumeric.
 //
-// As described in https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-subdomain-names
-func isValidSubdomainLabel(s string) bool {
-	reg := regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`)
-
-	if !reg.MatchString(s) {
-		return false
-	}
-
-	if len(s) > 253 {
-		return false
-	}
-
-	return true
+// As described in https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-label-names
+func isValidDNSLabel(s string) bool {
+	return len(s) <= 63 && dnsLabelRegexp.MatchString(s)
 }
 
 var labelNameRegexp = regexp.MustCompile(`^[A-Za-z0-9]([-A-Za-z0-9_.]*[A-Za-z0-9])?$`)

@@ -1,10 +1,12 @@
 package pantalon
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/goccy/go-yaml"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -383,3 +385,48 @@ later: &ignored 1
 func TestUnknownFieldWarnings_NoneWhenAnchored(t *testing.T) {
 	assert.Nil(t, unknownFieldWarnings([]byte(minimalYamlDoc+"typo: &x 1\n")))
 }
+
+func TestIsValidDNSLabel(t *testing.T) {
+	cases := []struct {
+		name  string
+		input string
+		want  bool
+	}{
+		{"single char", "a", true},
+		{"kebab case", "compute-dev", true},
+		{"digits", "0-9", true},
+		{"63 chars is the maximum", strings.Repeat("a", 63), true},
+		{"64 chars is too long", strings.Repeat("a", 64), false},
+		{"254 chars is too long", strings.Repeat("a", 254), false},
+		{"dot", "compute.dev", false},
+		{"leading dot", ".compute", false},
+		{"trailing dot", "compute.", false},
+		{"dotted 63 chars", strings.Repeat("a", 31) + "." + strings.Repeat("b", 31), false},
+		{"empty", "", false},
+		{"leading hyphen", "-a", false},
+		{"trailing hyphen", "a-", false},
+		{"uppercase", "A", false},
+		{"underscore", "a_b", false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			assert.Equal(t, c.want, isValidDNSLabel(c.input), "isValidDNSLabel(%q)", c.input)
+		})
+	}
+}
+
+func TestUnmarshalTerraformConfiguration_InvalidMetadataNameTooLong(t *testing.T) {
+	name := strings.Repeat("a", 64)
+	yamlDoc := nameHeader + "metadata:\n  name: " + name + "\n"
+	_, _, err := Parse([]byte(yamlDoc))
+	assert.ErrorContains(t, err, `invalid metadata.name "`+name+`"`)
+}
+
+func TestUnmarshalTerraformConfiguration_MetadataNameAtMaxLength(t *testing.T) {
+	name := strings.Repeat("a", 63)
+	cfg, _, err := Parse([]byte(nameHeader + "metadata:\n  name: " + name + "\n"))
+	require.NoError(t, err)
+	assert.Equal(t, name, cfg.Metadata.Name)
+}
+
+const nameHeader = "apiVersion: pantalon.kallan.dev/v1alpha1\nkind: TerraformConfiguration\n"
