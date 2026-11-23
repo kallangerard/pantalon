@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/kallangerard/pantalon/compare/v0.6.0...v0.6.1) (2026-11-23)
+
+
+### Miscellaneous
+
+* **deps:** update actions/setup-go action to v7.1.0 ([#126](https://github.com/kallangerard/pantalon/issues/126)) ([c4e61e9](https://github.com/kallangerard/pantalon/commit/c4e61e92d2898cfdb6e22813ffe157a1b4a6f71e))
+
 ## [0.6.0](https://github.com/kallangerard/pantalon/compare/v0.5.1...v0.6.0) (2026-11-21)
 
 
